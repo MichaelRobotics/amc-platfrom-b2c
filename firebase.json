@@ -4,12 +4,19 @@
     "runtime": "nodejs18"
   },
   "hosting": {
+    
     "public": "build",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
+    "apphosting": {
+      "backend": {
+        "source": "functions",
+        "entrypoint": "node index.js"
+      }
+    },
     "rewrites": [
       {
         "source": "/api/**",

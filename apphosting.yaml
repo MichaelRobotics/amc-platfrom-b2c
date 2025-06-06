@@ -48,6 +48,7 @@ serving:
   # Backend service configuration
   # This will run your Express app from the 'functions' directory
   backend:
+    source: functions
 
 # Optional: If you need to serve specific paths from your backend and others from static
 # you can use routes. Otherwise, staticDir and backend default routing should work.

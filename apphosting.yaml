@@ -28,7 +28,7 @@ env:
     # Replace YOUR_PROJECT_ID and YOUR_GEMINI_SECRET_NAME with your actual values.
     secret: projects/622141963650/secrets/GEMINI_API_KEY/versions/1
   - variable: FIREBASE_STORAGE_BUCKET_URL
-    value: "YOUR_FIREBASE_STORAGE_BUCKET_URL_HERE" # e.g., your-project-id.appspot.com
+    value: "csv-data-analyzer-e3207.firebasestorage.app" # e.g., your-project-id.appspot.com
 
 # Build configuration
 build:

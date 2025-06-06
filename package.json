@@ -1,5 +1,5 @@
 {
-  "name": "csv-data-analyzer",
+  "name": "cross-analyzer-gcp",
   "version": "0.1.0",
   "private": true,
   "description": "A CSV Data Analyzer application with a React frontend and Node.js serverless backend using Gemini and Firebase.",

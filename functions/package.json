@@ -9,6 +9,7 @@
   },
   "main": "index.js",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.19.2",
     "firebase-functions": "^5.0.1"
   },

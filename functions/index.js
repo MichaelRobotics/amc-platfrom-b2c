@@ -39,7 +39,12 @@ app.use('/api', apiRouter);
 
 // Export the Express app as an HTTP Cloud Function
 exports.api = functions
-    .runWith({ secrets: ["GEMINI_API_KEY", "FIREBASE_SERVICE_ACCOUNT_KEY_JSON", "FIREBASE_STORAGE_BUCKET_URL"] }) // Declare the secrets your function needs
+    .runWith({ 
+        secrets: [
+            "GEMINI_API_KEY", 
+            "STORAGE_BUCKET_URL"
+        ] 
+    })
     .https.onRequest(app);
 
 // Export the Express app as an HTTP Cloud Function named 'api'

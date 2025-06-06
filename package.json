@@ -2,7 +2,6 @@
   "name": "cross-analyzer-gcp",
   "version": "0.1.0",
   "private": true,
-  "description": "A CSV Data Analyzer application with a React frontend and Node.js serverless backend using Gemini and Firebase.",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -10,17 +9,12 @@
     "eject": "react-scripts eject"
   },
   "dependencies": {
-    "@google/genai": "^1.0.0",
-    "firebase-admin": "^12.0.0",
-    "formidable": "^3.5.1",
-    "papaparse": "^5.4.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "uuid": "^9.0.1"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "react-scripts": "^5.0.1",
-    "tailwindcss": "^3.3.0"
+    "tailwindcss": "^3.3.0" 
   },
   "eslintConfig": {
     "extends": [

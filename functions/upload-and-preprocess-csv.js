@@ -16,24 +16,17 @@ function preprocessCsvData(csvString) {
   }
 
   // Pre-process headers: remove newlines, trim, and consolidate spaces
-  const lines = csvString.split(/
-||
-/); // CORRECTED
+  const lines = csvString.split(/\r\n|\r|\n/);
   if (lines.length > 0) {
-    lines[0] = lines[0].replace(/(
-||
-)/g, ' ').replace(/\s+/g, ' ').trim(); // CORRECTED
+    lines[0] = lines[0].replace(/\r\n|\r|\n/g, ' ').replace(/\s+/g, ' ').trim();
   }
-  const processedCsvString = lines.join('
-');
+  const processedCsvString = lines.join('\n');
 
   const parseResult = Papa.parse(processedCsvString, {
     header: true,
     skipEmptyLines: 'greedy',
     dynamicTyping: true,
-    transformHeader: header => (header || '').toString().replace(/(
-||
-)/g, ' ').replace(/\s+/g, ' ').trim(), // CORRECTED
+    transformHeader: header => (header || '').toString().replace(/\r\n|\r|\n/g, ' ').replace(/\s+/g, ' ').trim(),
   });
 
   if (parseResult.errors.length > 0) {
@@ -163,8 +156,7 @@ Nagłówki: ${cleanedHeaders.join(', ')}.
 Całkowita liczba wierszy w zbiorze: ${rowCount}.
 Całkowita liczba kolumn w zbiorze: ${columnCount}.
 Próbka danych (${sampleDataForSummaryPrompt.length} wierszy):
-${sampleDataForSummaryPrompt.map(row => JSON.stringify(row)).join('
-')}
+${sampleDataForSummaryPrompt.map(row => JSON.stringify(row)).join('\n')}
 
 Zwróć obiekt JSON o następującej strukturze:
 {
@@ -196,7 +188,7 @@ Dla 'columns.stats', podaj odpowiednie statystyki; jeśli statystyka nie ma zast
 Dla 'columns.description', krótko opisz zawartość i potencjalne znaczenie kolumny.
 Dla 'rowInsights', wybierz 2-3 najbardziej wyróżniające się wiersze z dostarczonej próbki i opisz je. Wskaż numer wiersza z próbki (0-indeksowany) lub podaj kluczowe wartości, które go identyfikują.
 Dla 'generalObservations', podaj zwięzłe, ogólne spostrzeżenia.
-WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysłowy (") w wartościach tekstowych MUSZĄ być poprawnie poprzedzone znakiem ucieczki jako ".
+WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysłowy (") w wartościach tekstowych MUSZĄ być poprawnie poprzedzone znakiem ucieczki jako \\".
     `;
 
     let dataSummaryForPrompts;

@@ -40,6 +40,12 @@ app.post("/initiate-topic-analysis", initiateTopicAnalysisHandler);
 // Route for uploading and preprocessing a CSV file
 app.post("/upload-and-preprocess-csv", uploadAndPreprocessCsvHandler);
 
-// Expose the Express app as a single Cloud Function named 'api'
-// This function will handle all requests starting with /api/ as defined in firebase.json rewrites
-exports.api = functions.https.onRequest(app);
+// ** Add the code to listen on the PORT environment variable **
+const port = process.env.PORT || 8080; // Use the PORT env var or default to 8080
+app.listen(port, () => {
+  console.log(`Backend listening on port ${port}`);
+});
+
+// You might still need to export the app for local testing or other purposes,
+// but it's not the primary way App Hosting will run it in the container.
+// exports.api = functions.https.onRequest(app); // You can keep or remove this depending on your needs

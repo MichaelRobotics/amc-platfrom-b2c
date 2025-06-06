@@ -11,12 +11,6 @@
       "**/.*",
       "**/node_modules/**"
     ],
-    "apphosting": {
-      "backend": {
-        "source": "functions",
-        "entrypoint": "node index.js"
-      }
-    },
     "rewrites": [
       {
         "source": "/api/**",

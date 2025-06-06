@@ -15,8 +15,6 @@ runConfig:
 env:
   - variable: NODE_ENV
     value: development # Or production
-  - variable: PORT # App Hosting will provide this
-    value: 8082 # Default, will be overridden by App Hosting
   # Variables needed by your _lib files
   - variable: FIREBASE_SERVICE_ACCOUNT_KEY_JSON
     # Reference the secret from Secret Manager.
@@ -48,7 +46,7 @@ serving:
   # Backend service configuration
   # This will run your Express app from the 'functions' directory
   backend:
-    entrypoint: node index.js
+    entrypoint: npm start
     source: functions
 
 # Optional: If you need to serve specific paths from your backend and others from static

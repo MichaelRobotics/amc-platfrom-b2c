@@ -12,9 +12,11 @@
     "@google/genai": "^1.4.0",
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "firebase-admin": "^12.1.1",
     "firebase-functions": "^5.0.1",
-    "formidable": "^3.5.4",
-    "papaparse": "^5.5.3"
+    "formidable": "^3.5.1",
+    "papaparse": "^5.4.1",
+    "uuid": "^9.0.1"
   },
   "private": true
 }

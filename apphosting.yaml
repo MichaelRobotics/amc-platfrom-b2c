@@ -1,23 +1,67 @@
-# Settings for Backend (on Cloud Run).
-# See https://firebase.google.com/docs/app-hosting/configure#cloud-run
+# apphosting.yaml
+# Configuration for Google Cloud App Hosting
+
+# Runtime configuration for your backend
 runConfig:
-  minInstances: 0
-  # maxInstances: 100
-  # concurrency: 80
-  # cpu: 1
-  # memoryMiB: 512
+  runtime: nodejs18 # Or nodejs20, ensure it matches your functions/package.json engine
+  # cpu: 1 # Optional: Configure CPU
+  # memoryMiB: 512 # Optional: Configure memory
 
-# Environment variables and secrets.
-# env:
-  # Configure environment variables.
-  # See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
-  # - variable: MESSAGE
-  #   value: Hello world!
-  #   availability:
-  #     - BUILD
-  #     - RUNTIME
+# Environment variables
+# These will be placeholders here. You should set the actual values in the
+# App Hosting console or via gcloud CLI during deployment.
+# For sensitive values like API keys or service account JSON, it's highly recommended
+# to use Secret Manager and reference them here.
+env:
+  - variable: NODE_ENV
+    value: production
+  - variable: PORT # App Hosting will provide this
+    value: "8080" # Default, will be overridden by App Hosting
+  # Variables needed by your _lib files
+  - variable: FIREBASE_SERVICE_ACCOUNT_KEY_JSON
+    # Reference the secret from Secret Manager.
+    # Replace YOUR_PROJECT_ID and YOUR_SA_KEY_SECRET_NAME with your actual values.
+    # The secret version is typically 'latest' or a specific version number.
+    secret: projects/622141963650/secrets/FIREBASE_SERVICE_ACCOUNT_KEY_JSON/versions/1
+  - variable: GEMINI_API_KEY
+    # Reference the secret from Secret Manager.
+    # Replace YOUR_PROJECT_ID and YOUR_GEMINI_SECRET_NAME with your actual values.
+    secret: projects/622141963650/secrets/GEMINI_API_KEY/versions/1
+  - variable: FIREBASE_STORAGE_BUCKET_URL
+    value: "YOUR_FIREBASE_STORAGE_BUCKET_URL_HERE" # e.g., your-project-id.appspot.com
 
-  # Grant access to secrets in Cloud Secret Manager.
-  # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
-  # - variable: MY_SECRET
-  #   secret: mySecretRef
+# Build configuration
+build:
+  # Commands to build your frontend (React app)
+  # Assumes your frontend is in the root and builds to a 'build' directory
+  - command: npm install && npm run build # Installs root dependencies and builds the React app
+  # Commands to prepare your backend (Express app in 'functions' directory)
+  # This assumes your 'functions' directory has its own package.json
+  - command: cd functions && npm install && cd .. # Install backend dependencies
+
+# Serving configuration
+serving:
+  # Static files for your frontend (React app)
+  # App Hosting will serve files from this directory if no backend route matches.
+  staticDir: build # Path to your React app's build output
+
+  # Backend service configuration
+  # This will run your Express app from the 'functions' directory
+  backend:
+    # command: node functions/index.js # Entry point for your Express server
+    # The entrypoint should ideally be defined in your functions/package.json "start" script
+    # e.g., "start": "node index.js" (when run from within the 'functions' directory)
+    # App Hosting will look for a "start" script in the package.json of the backend.
+    # For clarity, you can also specify it directly:
+    entrypoint: node functions/index.js
+    # healthCheck: # Optional: Configure health checks
+    #   path: /_ah/health
+
+# Optional: If you need to serve specific paths from your backend and others from static
+# you can use routes. Otherwise, staticDir and backend default routing should work.
+# routes:
+#   - pathPrefix: /api
+#     target: backend
+#   - pathPrefix: /
+#     target: staticDir
+

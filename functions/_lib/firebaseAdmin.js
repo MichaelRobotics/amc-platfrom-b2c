@@ -1,57 +1,63 @@
 // File: functions/_lib/firebaseAdmin.js
 // Description: Initializes and exports the Firebase Admin SDK.
-// Uses Firebase Functions config for service account credentials.
+// Uses environment variables from Secret Manager via apphosting.yaml.
 
 const admin = require("firebase-admin");
-const functions = require("firebase-functions"); // Required to access functions.config()
 
 try {
   if (!admin.apps.length) {
-    // Get service account key from Firebase Functions config
-    // The key should be stored as a JSON string in the environment configuration
-    // e.g., firebase functions:config:set secrets.firebase_service_account_key_json="..."
-    const serviceAccountString = functions.config().secrets.firebase_service_account_key_json;
-    if (!serviceAccountString) {
-      console.error(
-        "Firebase service account key JSON string is not set in Functions config (secrets.firebase_service_account_key_json). " +
-        "Ensure it's configured correctly using 'firebase functions:config:set secrets.firebase_service_account_key_json=\"<JSON_CONTENT>\"'"
-      );
-      throw new Error("Service account key not configured.");
-    }
-
-    let serviceAccount;
-    try {
-      serviceAccount = JSON.parse(serviceAccountString);
-    } catch (e) {
-      console.error("Failed to parse service account key JSON string:", e.message);
-      console.error("Make sure the entire JSON key content is correctly pasted as a string when setting the config.");
-      throw new Error("Invalid service account key format.");
+    // Option 1: Use Application Default Credentials (Recommended for Firebase Functions)
+    // When running on Firebase Functions, the service account is automatically configured
+    // This is the simplest and most secure approach
+    
+    // Option 2: If you need a specific service account, use environment variables
+    // Set in apphosting.yaml:
+    // env:
+    //   - variable: FIREBASE_SERVICE_ACCOUNT_KEY
+    //     secret: firebase-service-account-key
+    //   - variable: FIREBASE_STORAGE_BUCKET
+    //     secret: firebase-storage-bucket-url
+    
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    const storageBucketUrl = process.env.FIREBASE_STORAGE_BUCKET;
+    
+    let initConfig = {};
+    
+    if (serviceAccountKey) {
+      // Using explicit service account from Secret Manager
+      try {
+        const serviceAccount = JSON.parse(serviceAccountKey);
+        initConfig.credential = admin.credential.cert(serviceAccount);
+        console.log("Firebase Admin SDK initializing with explicit service account from Secret Manager.");
+      } catch (e) {
+        console.error("Failed to parse service account key JSON from environment variable:", e.message);
+        throw new Error("Invalid service account key format in FIREBASE_SERVICE_ACCOUNT_KEY.");
+      }
+    } else {
+      // Using Application Default Credentials (recommended for Firebase Functions)
+      console.log("Firebase Admin SDK initializing with Application Default Credentials.");
+      // No need to set credential explicitly - Firebase Functions automatically provides it
     }
     
-    // Get storage bucket URL from Firebase Functions config
-    // e.g., firebase functions:config:set secrets.firebase_storage_bucket_url="..."
-    const storageBucketUrl = functions.config().secrets.firebase_storage_bucket_url;
-     if (!storageBucketUrl) {
+    if (storageBucketUrl) {
+      initConfig.storageBucket = storageBucketUrl;
+    } else {
       console.warn(
-        "Firebase Storage bucket URL is not set in Functions config (secrets.firebase_storage_bucket_url). " +
-        "File uploads might not work as expected."
+        "Firebase Storage bucket URL not set in FIREBASE_STORAGE_BUCKET environment variable. " +
+        "File uploads might not work as expected. Consider setting this in apphosting.yaml."
       );
     }
 
-
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      storageBucket: storageBucketUrl || undefined, // Ensure it's undefined if not set, matching original logic
-    });
+    admin.initializeApp(initConfig);
     console.log("Firebase Admin SDK initialized successfully.");
   }
 } catch (error) {
-  console.error("Firebase Admin SDK initialization error:", error.stack); // Changed to error.stack for more detail
-  // To prevent functions from attempting to run with an uninitialized admin SDK,
-  // you might re-throw or handle this in a way that stops further execution if critical.
+  console.error("Firebase Admin SDK initialization error:", error.stack);
+  // Re-throw to prevent functions from running with uninitialized admin SDK
+  throw new Error(`Failed to initialize Firebase Admin SDK: ${error.message}`);
 }
 
 const firestore = admin.firestore();
-const storage = admin.storage(); // Export storage for use in functions
+const storage = admin.storage();
 
 module.exports = { admin, firestore, storage };

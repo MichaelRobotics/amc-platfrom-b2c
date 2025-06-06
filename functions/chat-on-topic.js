@@ -2,7 +2,6 @@
 // Description: Handles chat interactions related to a specific topic using Gemini API.
 // Migrated from Vercel API route: api/chat-on-topic.js (now with more complete logic)
 
-const functions = require("firebase-functions"); // Required for functions.config() if used directly here
 const { admin, firestore } = require("./_lib/firebaseAdmin"); // Correct path, admin for FieldValue
 const { getGenerativeModel, cleanPotentialJsonMarkdown } = require("./_lib/geminiClient"); // Correct path
 

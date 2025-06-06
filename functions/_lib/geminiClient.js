@@ -4,17 +4,17 @@
 
 // Static import for CommonJS environment (Firebase Functions)
 const { GoogleGenAI } = require("@google/genai");
-const functions = require("firebase-functions"); // Required to access functions.config()
 
 let genAIInstance;
 let geminiApiKeyUsed;
 
 try {
-  geminiApiKeyUsed = functions.config().secrets.gemini_api_key;
+  // Use environment variable from Secret Manager (via apphosting.yaml)
+  geminiApiKeyUsed = process.env.GEMINI_API_KEY;
   if (!geminiApiKeyUsed) {
     console.error(
-      "Gemini API key is not set in Functions config (secrets.gemini_api_key). " +
-      "Ensure it's configured correctly using 'firebase functions:config:set secrets.gemini_api_key=\"YOUR_API_KEY\"'"
+      "Gemini API key is not set in environment variable GEMINI_API_KEY. " +
+      "Ensure it's configured in apphosting.yaml to reference the secret from Secret Manager."
     );
     // Initialize with a null or placeholder if you want functions to attempt to run and fail gracefully
     // Forcing an error here might be better if Gemini is critical.

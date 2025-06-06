@@ -48,14 +48,6 @@ serving:
   # Backend service configuration
   # This will run your Express app from the 'functions' directory
   backend:
-    # command: node functions/index.js # Entry point for your Express server
-    # The entrypoint should ideally be defined in your functions/package.json "start" script
-    # e.g., "start": "node index.js" (when run from within the 'functions' directory)
-    # App Hosting will look for a "start" script in the package.json of the backend.
-    # For clarity, you can also specify it directly:
-    entrypoint: node functions/index.js
-    # healthCheck: # Optional: Configure health checks
-    #   path: /_ah/health
 
 # Optional: If you need to serve specific paths from your backend and others from static
 # you can use routes. Otherwise, staticDir and backend default routing should work.

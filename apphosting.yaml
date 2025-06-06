@@ -16,7 +16,7 @@ env:
   - variable: NODE_ENV
     value: development # Or production
   - variable: PORT # App Hosting will provide this
-    value: "8080" # Default, will be overridden by App Hosting
+    value: 8080 # Default, will be overridden by App Hosting
   # Variables needed by your _lib files
   - variable: FIREBASE_SERVICE_ACCOUNT_KEY_JSON
     # Reference the secret from Secret Manager.

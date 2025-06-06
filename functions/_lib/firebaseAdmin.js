@@ -1,23 +1,31 @@
 // File: functions/_lib/firebaseAdmin.js
 // Description: Initializes and exports the Firebase Admin SDK.
-// Uses Application Default Credentials (ADC) automatically in Firebase Functions.
+// Primarily uses Application Default Credentials for Firebase Functions.
 
 const admin = require("firebase-admin");
 
 try {
-  // Initialize the app only if it hasn't been initialized yet.
   if (!admin.apps.length) {
-    // Use Application Default Credentials (Recommended for Firebase Functions)
-    // When running on Firebase Functions, the service account is automatically configured.
-    // This is the simplest and most secure approach.
-    // No need to set credential explicitly - Firebase Functions automatically provides it.
+    const initConfig = {};
+    const storageBucketUrl = process.env.STORAGE_BUCKET_URL; // Ensure this matches your secret name
 
+    if (storageBucketUrl) {
+      initConfig.storageBucket = storageBucketUrl;
+      console.log(`Firebase Admin SDK using storage bucket: ${storageBucketUrl}`);
+    } else {
+      console.warn(
+        "STORAGE_BUCKET_URL environment variable not set. " +
+        "Firebase Admin SDK will use the default storage bucket. " +
+        "File uploads to a specific bucket might not work as expected if a specific bucket is intended."
+      );
+    }
+
+    // When running on Firebase Functions, ADC is used by default if no credential is provided.
     admin.initializeApp(initConfig);
-    console.log("Firebase Admin SDK initialized successfully.");
+    console.log("Firebase Admin SDK initialized successfully using Application Default Credentials.");
   }
 } catch (error) {
   console.error("Firebase Admin SDK initialization error:", error.stack);
-  // Re-throw to prevent functions from running with uninitialized admin SDK
   throw new Error(`Failed to initialize Firebase Admin SDK: ${error.message}`);
 }
 

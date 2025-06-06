@@ -15,18 +15,23 @@ function preprocessCsvData(csvString) {
     throw new Error('Invalid CSV string provided for preprocessing.');
   }
   // Pre-process headers: remove newlines, trim, and consolidate spaces
-  const lines = csvString.split(/\r\n|\r|\n/);
+  const lines = csvString.split(/
+||
+/);
   if (lines.length > 0) {
-      lines[0] = lines[0].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+      lines[0] = lines[0].replace(/
+/g, ' ').replace(/\s+/g, ' ').trim();
   }
-  const processedCsvString = lines.join('\n');
+  const processedCsvString = lines.join('
+');
 
 
   const parseResult = Papa.parse(processedCsvString, {
     header: true,
-    skipEmptyLines: 'greedy', // Skips lines that are empty or all whitespace
-    dynamicTyping: true, // Automatically convert numerics, booleans
-    transformHeader: header => (header || '').toString().replace(/\n/g, ' ').replace(/\s+/g, ' ').trim(),
+    skipEmptyLines: 'greedy',
+    dynamicTyping: true,
+    transformHeader: header => (header || '').toString().replace(/
+/g, ' ').replace(/\s+/g, ' ').trim(),
   });
 
   if (parseResult.errors.length > 0) {
@@ -40,21 +45,18 @@ function preprocessCsvData(csvString) {
       return { cleanedData: [], cleanedHeaders: [], originalHeaders, rowCount: 0, columnCount: 0 };
   }
 
-  // Filter out headers that correspond to entirely empty columns
   const nonEmptyHeaders = originalHeaders.filter(header =>
     data.some(row => row[header] !== null && row[header] !== undefined && String(row[header]).trim() !== '')
   );
   
-  // Re-map data to only include non-empty headers and their values
   data = data.map(row => {
     const newRow = {};
     nonEmptyHeaders.forEach(header => {
-      newRow[header] = row[header]; // Keep original value (or undefined if column was sparse for this row)
+      newRow[header] = row[header];
     });
     return newRow;
   });
 
-  // Final filter to remove rows that became entirely empty after header filtering
   data = data.filter(row => 
     nonEmptyHeaders.some(header => row[header] !== null && row[header] !== undefined && String(row[header]).trim() !== '')
   );
@@ -77,11 +79,10 @@ async function uploadAndPreprocessCsvHandler(req, res) {
     return res.status(405).json({ success: false, message: `Method ${req.method} Not Allowed` });
   }
 
-  const form = formidable({}); // Vercel config for bodyParser:false is not needed here; Express handles it.
+  const form = new formidable.IncomingForm({}); // Vercel config for bodyParser:false is not needed here; Express handles it.
   let tempFilepath; 
 
   try {
-    // formidable v3 returns a promise from form.parse
     const [fields, files] = await new Promise((resolve, reject) => {
         form.parse(req, (err, fields, files) => {
             if (err) {
@@ -92,8 +93,6 @@ async function uploadAndPreprocessCsvHandler(req, res) {
         });
     });
 
-
-    // formidable v3 stores files as arrays even for single file uploads
     if (!files.csvFile || files.csvFile.length === 0) {
       console.warn("No CSV file uploaded under 'csvFile' field.");
       return res.status(400).json({ success: false, message: 'No CSV file uploaded.' });
@@ -111,22 +110,20 @@ async function uploadAndPreprocessCsvHandler(req, res) {
     const analysisId = uuidv4();
     console.log(`Processing new analysis: ${analysisName} (ID: ${analysisId}), original file: ${originalFileName}`);
 
-    // Upload raw CSV to Firebase Storage
     const rawCsvStoragePath = `raw_csvs/${analysisId}/${originalFileName}`;
     const rawFileBuffer = await fs.readFile(csvFile.filepath); 
 
-    const bucket = storage.bucket(); // Get default bucket
+    const bucket = storage.bucket();
     await bucket.file(rawCsvStoragePath).save(rawFileBuffer, {
       metadata: { contentType: csvFile.mimetype || 'text/csv' },
     });
     console.log(`Raw CSV uploaded to Firebase Storage: ${rawCsvStoragePath}`);
     
-    // Temp file can be unlinked now as buffer is read
     await fs.unlink(csvFile.filepath); 
-    tempFilepath = null; // Mark as unlinked
+    tempFilepath = null;
 
     console.log('Starting CSV preprocessing...');
-    const csvString = rawFileBuffer.toString('utf-8'); // Assuming UTF-8
+    const csvString = rawFileBuffer.toString('utf-8');
     const { cleanedData, cleanedHeaders, rowCount, columnCount } = preprocessCsvData(csvString);
     
     if (rowCount === 0 || columnCount === 0) {
@@ -135,20 +132,19 @@ async function uploadAndPreprocessCsvHandler(req, res) {
     }
     console.log(`CSV preprocessed: ${rowCount} rows, ${columnCount} columns.`);
 
-    // Prepare sample data for Gemini prompt (from original logic)
     const sampleSizeForPrompt = Math.min(rowCount, 13);
     const sampleDataForSummaryPrompt = cleanedData.slice(0, sampleSizeForPrompt).map(row => 
-        Object.fromEntries(Object.entries(row).map(([key, value]) => [key, String(value).slice(0,100)])) // Truncate values
+        Object.fromEntries(Object.entries(row).map(([key, value]) => [key, String(value).slice(0,100)]))
     );
 
-    // Construct prompt for dataSummaryForPrompts (from original logic)
     const dataSummaryPrompt = `
 Przeanalizuj poniższe nagłówki danych CSV oraz dostarczoną próbkę wierszy, aby dostarczyć kompleksowe, strukturalne podsumowanie obejmujące zarówno kolumny, jak i wiersze.
 Nagłówki: ${cleanedHeaders.join(', ')}.
 Całkowita liczba wierszy w zbiorze: ${rowCount}.
 Całkowita liczba kolumn w zbiorze: ${columnCount}.
 Próbka danych (${sampleDataForSummaryPrompt.length} wierszy):
-${sampleDataForSummaryPrompt.map(row => JSON.stringify(row)).join('\n')}
+${sampleDataForSummaryPrompt.map(row => JSON.stringify(row)).join('
+')}
 
 Zwróć obiekt JSON o następującej strukturze:
 {
@@ -180,7 +176,7 @@ Dla 'columns.stats', podaj odpowiednie statystyki; jeśli statystyka nie ma zast
 Dla 'columns.description', krótko opisz zawartość i potencjalne znaczenie kolumny.
 Dla 'rowInsights', wybierz 2-3 najbardziej wyróżniające się wiersze z dostarczonej próbki i opisz je. Wskaż numer wiersza z próbki (0-indeksowany) lub podaj kluczowe wartości, które go identyfikują.
 Dla 'generalObservations', podaj zwięzłe, ogólne spostrzeżenia.
-WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysłowy (") w wartościach tekstowych MUSZĄ być poprawnie poprzedzone znakiem ucieczki jako \\\\".
+WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysłowy (") w wartościach tekstowych MUSZĄ być poprawnie poprzedzone znakiem ucieczki jako ".
     `;
 
     let dataSummaryForPrompts;
@@ -195,12 +191,10 @@ WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysł
       dataSummaryForPrompts = JSON.parse(cleanedResponseText);
     } catch(geminiError) {
         console.error("Gemini error during dataSummaryForPrompts generation:", geminiError);
-        // No temp file to clean here as it was unlinked after reading to buffer
         return res.status(500).json({ success: false, message: `Failed to generate data summary with AI: ${geminiError.message}` });
     }
     console.log('dataSummaryForPrompts (includes row insights) generated by Gemini.');
 
-    // Construct prompt for dataNatureDescription (from original logic)
     const dataNaturePrompt = `
 Na podstawie następującego podsumowania danych (które zawiera analizę kolumn i spostrzeżenia dotyczące wierszy):
 ${JSON.stringify(dataSummaryForPrompts, null, 2)}
@@ -209,10 +203,10 @@ Krótko opisz ogólną naturę tego zbioru danych w 1-2 zdaniach.
 Zasugeruj 1-2 ogólne typy analizy, do których byłby on najbardziej odpowiedni, biorąc pod uwagę zarówno charakterystyki kolumn, jak i przykładowe spostrzeżenia dotyczące wierszy.
 Opis powinien być zwięzły i informacyjny. Nie używaj formatowania HTML. Odpowiedź powinna być zwykłym tekstem.
     `;
-    let dataNatureDescriptionText; // Gemini returns text here, not JSON
+    let dataNatureDescriptionText;
     try {
         const model = getGenerativeModel("gemini-2.5-flash-preview-05-20");
-        const result = await model.generateContent(dataNaturePrompt); // Simpler call for text response
+        const result = await model.generateContent(dataNaturePrompt);
         dataNatureDescriptionText = result.response.text();
     } catch(geminiError) {
         console.error("Gemini error during dataNatureDescription generation:", geminiError);
@@ -220,20 +214,18 @@ Opis powinien być zwięzły i informacyjny. Nie używaj formatowania HTML. Odpo
     }
     console.log('dataNatureDescription generated by Gemini.');
 
-    // Upload cleaned CSV to Firebase Storage
     const cleanedCsvString = Papa.unparse(cleanedData);
     const cleanedCsvStoragePath = `cleaned_csvs/${analysisId}/cleaned_data.csv`;
     await bucket.file(cleanedCsvStoragePath).save(cleanedCsvString, { metadata: { contentType: 'text/csv' } });
     console.log(`Cleaned CSV uploaded to Firebase Storage: ${cleanedCsvStoragePath}`);
 
-    // Prepare data for Firestore document
     const analysisDocData = {
       analysisName: analysisName,
       originalFileName: originalFileName,
       rawCsvStoragePath: rawCsvStoragePath,
       cleanedCsvStoragePath: cleanedCsvStoragePath,
       dataSummaryForPrompts: dataSummaryForPrompts, 
-      dataNatureDescription: dataNatureDescriptionText, // Use the text response
+      dataNatureDescription: dataNatureDescriptionText,
       rowCount: rowCount,
       columnCount: columnCount,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -241,7 +233,6 @@ Opis powinien być zwięzły i informacyjny. Nie używaj formatowania HTML. Odpo
       status: "ready_for_topic_analysis", 
     };
 
-    // Logic for storing small datasets directly in Firestore (from original)
     const SMALL_DATASET_THRESHOLD_CELLS = 200; 
     const SMALL_DATASET_THRESHOLD_JSON_LENGTH = 200000; 
     
@@ -264,7 +255,6 @@ Opis powinien być zwięzły i informacyjny. Nie używaj formatowania HTML. Odpo
         analysisDocData.smallDatasetRawData = null;
     }
 
-    // Save analysis document to Firestore
     const analysisDocRef = firestore.collection('analyses').doc(analysisId);
     await analysisDocRef.set(analysisDocData);
     console.log(`Analysis record created in Firestore for ID: ${analysisId}`);
@@ -275,7 +265,7 @@ Opis powinien być zwięzły i informacyjny. Nie używaj formatowania HTML. Odpo
       analysisName: analysisName, 
       originalFileName: originalFileName, 
       message: "File processed and analysis record created successfully.",
-      dataNatureDescription: dataNatureDescriptionText // Return the generated description
+      dataNatureDescription: dataNatureDescriptionText
     });
 
   } catch (error) {

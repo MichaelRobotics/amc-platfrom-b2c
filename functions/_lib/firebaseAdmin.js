@@ -18,8 +18,8 @@ try {
     //   - variable: FIREBASE_STORAGE_BUCKET
     //     secret: firebase-storage-bucket-url
     
-    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-    const storageBucketUrl = process.env.FIREBASE_STORAGE_BUCKET;
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_JSON;
+    const storageBucketUrl = process.env.FIREBASE_STORAGE_BUCKET_URL;
     
     let initConfig = {};
     

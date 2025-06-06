@@ -48,6 +48,7 @@ serving:
   # Backend service configuration
   # This will run your Express app from the 'functions' directory
   backend:
+    entrypoint: node index.js
     source: functions
 
 # Optional: If you need to serve specific paths from your backend and others from static

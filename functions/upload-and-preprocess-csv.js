@@ -17,9 +17,10 @@ function preprocessCsvData(csvString) {
 
   // Pre-process headers: remove newlines, trim, and consolidate spaces
   const lines = csvString.split(/\r\n|\r|\n/);
+
   if (lines.length > 0) {
     lines[0] = lines[0].replace(/\r\n|\r|\n/g, ' ').replace(/\s+/g, ' ').trim();
-  }
+
   const processedCsvString = lines.join('\n');
 
   const parseResult = Papa.parse(processedCsvString, {
@@ -81,16 +82,39 @@ async function uploadAndPreprocessCsvHandler(req, res) {
   const form = new formidable.IncomingForm();
   let tempFilepath = null;
 
+  // Add formidable event listeners for debugging
+  form.on('error', (err) => {
+    console.error('[UPLOAD_CSV] Formidable stream error:', err);
+  });
+  form.on('progress', (bytesReceived, bytesExpected) => {
+    console.log(`[UPLOAD_CSV] Formidable progress: ${bytesReceived} / ${bytesExpected || 'unknown'}`);
+  });
+  form.on('fileBegin', (name, file) => {
+    console.log(`[UPLOAD_CSV] Formidable fileBegin: fieldName='${name}', originalFilename='${file.originalFilename}', newFilename='${file.newFilename}', filepath='${file.filepath}'`);
+  });
+  form.on('file', (name, file) => {
+    console.log(`[UPLOAD_CSV] Formidable file received: fieldName='${name}', path='${file.filepath}', originalFilename='${file.originalFilename}', size=${file.size}`);
+  });
+  form.on('field', (name, value) => {
+    console.log(`[UPLOAD_CSV] Formidable field received: ${name} = ${value}`);
+  });
+  form.on('end', () => {
+    console.log('[UPLOAD_CSV] Formidable form.on("end") event fired.');
+  });
+  form.on('aborted', () => {
+    console.error('[UPLOAD_CSV] Formidable form.on("aborted") event fired. Request was aborted by the client or a network error.');
+  });
+
   try {
-    console.log('[UPLOAD_CSV] Starting form.parse...');
+    console.log('[UPLOAD_CSV] Starting wrapped form.parse promise...');
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
         if (err) {
-          console.error('[UPLOAD_CSV] Error in form.parse:', err);
+          console.error('[UPLOAD_CSV] Error in form.parse callback:', err);
           reject(err);
           return;
         }
-        console.log('[UPLOAD_CSV] form.parse successful.');
+        console.log('[UPLOAD_CSV] form.parse callback successful. Fields and files received.');
         resolve([fields, files]);
       });
     });
@@ -188,7 +212,7 @@ Dla 'columns.stats', podaj odpowiednie statystyki; jeśli statystyka nie ma zast
 Dla 'columns.description', krótko opisz zawartość i potencjalne znaczenie kolumny.
 Dla 'rowInsights', wybierz 2-3 najbardziej wyróżniające się wiersze z dostarczonej próbki i opisz je. Wskaż numer wiersza z próbki (0-indeksowany) lub podaj kluczowe wartości, które go identyfikują.
 Dla 'generalObservations', podaj zwięzłe, ogólne spostrzeżenia.
-WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysłowy (") w wartościach tekstowych MUSZĄ być poprawnie poprzedzone znakiem ucieczki jako \\".
+WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysłowy (") w wartościach tekstowych MUSZĄ być poprawnie poprzedzone znakiem ucieczki jako ".
     `;
 
     let dataSummaryForPrompts;

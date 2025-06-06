@@ -14,7 +14,7 @@ runConfig:
 # to use Secret Manager and reference them here.
 env:
   - variable: NODE_ENV
-    value: production
+    value: development # Or production
   - variable: PORT # App Hosting will provide this
     value: "8080" # Default, will be overridden by App Hosting
   # Variables needed by your _lib files

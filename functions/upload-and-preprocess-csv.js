@@ -20,6 +20,7 @@ function preprocessCsvData(csvString) {
 
   if (lines.length > 0) {
     lines[0] = lines[0].replace(/\r\n|\r|\n/g, ' ').replace(/\s+/g, ' ').trim();
+  }
 
   const processedCsvString = lines.join('\n');
 

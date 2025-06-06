@@ -33,6 +33,8 @@ app.use('/api', apiRouter);
 // Export the Express app as an HTTP Cloud Function
 exports.api = functions
     .runWith({ 
+        timeoutSeconds: 120, // 2 minutes
+        memory: '1GB',       // 1 GiB of memory
         secrets: [
             "GEMINI_API_KEY", 
             "STORAGE_BUCKET_URL"

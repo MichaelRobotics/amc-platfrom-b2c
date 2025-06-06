@@ -16,17 +16,24 @@ function preprocessCsvData(csvString) {
   }
 
   // Pre-process headers: remove newlines, trim, and consolidate spaces
-  const lines = csvString.split(/\r?\n/);
+  const lines = csvString.split(/
+||
+/); // CORRECTED
   if (lines.length > 0) {
-    lines[0] = lines[0].replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim();
+    lines[0] = lines[0].replace(/(
+||
+)/g, ' ').replace(/\s+/g, ' ').trim(); // CORRECTED
   }
-  const processedCsvString = lines.join('\n');
+  const processedCsvString = lines.join('
+');
 
   const parseResult = Papa.parse(processedCsvString, {
     header: true,
     skipEmptyLines: 'greedy',
     dynamicTyping: true,
-    transformHeader: header => (header || '').toString().replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim(),
+    transformHeader: header => (header || '').toString().replace(/(
+||
+)/g, ' ').replace(/\s+/g, ' ').trim(), // CORRECTED
   });
 
   if (parseResult.errors.length > 0) {
@@ -67,6 +74,11 @@ function preprocessCsvData(csvString) {
 
 // Handler function for POST /api/upload-and-preprocess-csv
 async function uploadAndPreprocessCsvHandler(req, res) {
+  console.log('--- uploadAndPreprocessCsvHandler INVOKED (NEW LOGGING V4) ---');
+  console.log('Request method:', req.method);
+  console.log('GEMINI_API_KEY is set:', process.env.GEMINI_API_KEY ? 'Yes' : 'No');
+  console.log('STORAGE_BUCKET_URL is set:', process.env.STORAGE_BUCKET_URL ? 'Yes' : 'No');
+
   if (req.method !== 'POST') {
     console.warn(`Method ${req.method} not allowed for /upload-and-preprocess-csv`);
     res.setHeader('Allow', ['POST']);
@@ -77,26 +89,30 @@ async function uploadAndPreprocessCsvHandler(req, res) {
   let tempFilepath = null;
 
   try {
+    console.log('[UPLOAD_CSV] Starting form.parse...');
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
         if (err) {
+          console.error('[UPLOAD_CSV] Error in form.parse:', err);
           reject(err);
           return;
         }
+        console.log('[UPLOAD_CSV] form.parse successful.');
         resolve([fields, files]);
       });
     });
 
     if (!files.csvFile || files.csvFile.length === 0) {
-      console.warn("No CSV file uploaded under 'csvFile' field.");
+      console.warn("[UPLOAD_CSV] No CSV file uploaded under 'csvFile' field.");
       return res.status(400).json({ success: false, message: 'No CSV file uploaded.' });
     }
 
     const csvFile = files.csvFile[0];
     tempFilepath = csvFile.filepath;
+    console.log(`[UPLOAD_CSV] Temporary file path: ${tempFilepath}`);
     
     if (!fields.analysisName || fields.analysisName.length === 0 || !fields.analysisName[0].trim()) {
-      console.warn("Analysis name is missing or empty.");
+      console.warn("[UPLOAD_CSV] Analysis name is missing or empty.");
       return res.status(400).json({ success: false, message: 'Analysis name is required and cannot be empty.' });
     }
 
@@ -104,37 +120,38 @@ async function uploadAndPreprocessCsvHandler(req, res) {
     const originalFileName = csvFile.originalFilename || 'uploaded_file.csv';
     const analysisId = uuidv4();
     
-    console.log(`Processing new analysis: ${analysisName} (ID: ${analysisId}), original file: ${originalFileName}`);
+    console.log(`[UPLOAD_CSV] Processing new analysis: ${analysisName} (ID: ${analysisId}), original file: ${originalFileName}`);
 
-    // Upload raw CSV to Firebase Storage
-    const rawCsvStoragePath = `raw_csvs/${analysisId}/${originalFileName}`;
+    console.log('[UPLOAD_CSV] Reading raw file buffer...');
     const rawFileBuffer = await fs.readFile(csvFile.filepath);
-    const bucket = storage.bucket();
+    console.log('[UPLOAD_CSV] Raw file buffer read. Uploading to Storage...');
     
+    const bucket = storage.bucket();
+    const rawCsvStoragePath = `raw_csvs/${analysisId}/${originalFileName}`;
     await bucket.file(rawCsvStoragePath).save(rawFileBuffer, {
       metadata: { contentType: csvFile.mimetype || 'text/csv' },
     });
-    console.log(`Raw CSV uploaded to Firebase Storage: ${rawCsvStoragePath}`);
+    console.log(`[UPLOAD_CSV] Raw CSV uploaded to Firebase Storage: ${rawCsvStoragePath}`);
     
-    // Clean up temporary file
+    console.log('[UPLOAD_CSV] Unlinking temporary file...');
     await fs.unlink(csvFile.filepath);
     tempFilepath = null;
+    console.log('[UPLOAD_CSV] Temporary file unlinked.');
 
-    // Process CSV data
-    console.log('Starting CSV preprocessing...');
+    console.log('[UPLOAD_CSV] Starting CSV preprocessing...');
     const csvString = rawFileBuffer.toString('utf-8');
     const { cleanedData, cleanedHeaders, rowCount, columnCount } = preprocessCsvData(csvString);
     
     if (rowCount === 0 || columnCount === 0) {
-      console.warn("CSV processing resulted in no usable data.");
+      console.warn("[UPLOAD_CSV] CSV processing resulted in no usable data.");
       return res.status(400).json({ 
         success: false, 
         message: 'CSV processing resulted in no usable data. The file might be empty or incorrectly formatted.' 
       });
     }
-    console.log(`CSV preprocessed: ${rowCount} rows, ${columnCount} columns.`);
+    console.log(`[UPLOAD_CSV] CSV preprocessed: ${rowCount} rows, ${columnCount} columns.`);
 
-    // Generate AI summary
+    console.log('[UPLOAD_CSV] Preparing sample for Gemini dataSummaryForPrompts...');
     const sampleSizeForPrompt = Math.min(rowCount, 13);
     const sampleDataForSummaryPrompt = cleanedData.slice(0, sampleSizeForPrompt).map(row => 
       Object.fromEntries(Object.entries(row).map(([key, value]) => [key, String(value).slice(0,100)]))
@@ -146,7 +163,8 @@ Nagłówki: ${cleanedHeaders.join(', ')}.
 Całkowita liczba wierszy w zbiorze: ${rowCount}.
 Całkowita liczba kolumn w zbiorze: ${columnCount}.
 Próbka danych (${sampleDataForSummaryPrompt.length} wierszy):
-${sampleDataForSummaryPrompt.map(row => JSON.stringify(row)).join('\n')}
+${sampleDataForSummaryPrompt.map(row => JSON.stringify(row)).join('
+')}
 
 Zwróć obiekt JSON o następującej strukturze:
 {
@@ -178,12 +196,12 @@ Dla 'columns.stats', podaj odpowiednie statystyki; jeśli statystyka nie ma zast
 Dla 'columns.description', krótko opisz zawartość i potencjalne znaczenie kolumny.
 Dla 'rowInsights', wybierz 2-3 najbardziej wyróżniające się wiersze z dostarczonej próbki i opisz je. Wskaż numer wiersza z próbki (0-indeksowany) lub podaj kluczowe wartości, które go identyfikują.
 Dla 'generalObservations', podaj zwięzłe, ogólne spostrzeżenia.
-WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysłowy (") w wartościach tekstowych MUSZĄ być poprawnie poprzedzone znakiem ucieczki jako \".
+WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysłowy (") w wartościach tekstowych MUSZĄ być poprawnie poprzedzone znakiem ucieczki jako ".
     `;
 
-    // Generate data summary using Gemini
     let dataSummaryForPrompts;
     try {
+      console.log('[UPLOAD_CSV] Calling Gemini for dataSummaryForPrompts...');
       const model = getGenerativeModel("gemini-2.5-flash-preview-05-20");
       const result = await model.generateContent(dataSummaryPrompt, {
         responseMimeType: 'application/json'
@@ -192,16 +210,15 @@ WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysł
       const responseText = result.response.text();
       const cleanedResponseText = cleanPotentialJsonMarkdown(responseText);
       dataSummaryForPrompts = JSON.parse(cleanedResponseText);
+      console.log('[UPLOAD_CSV] Data summary generated by Gemini.');
     } catch(geminiError) {
-      console.error("Gemini error during dataSummaryForPrompts generation:", geminiError);
+      console.error("[UPLOAD_CSV] Gemini error during dataSummaryForPrompts generation:", geminiError);
       return res.status(500).json({ 
         success: false, 
         message: `Failed to generate data summary with AI: ${geminiError.message}` 
       });
     }
-    console.log('Data summary generated by Gemini.');
 
-    // Generate data nature description
     const dataNaturePrompt = `
 Na podstawie następującego podsumowania danych (które zawiera analizę kolumn i spostrzeżenia dotyczące wierszy):
 ${JSON.stringify(dataSummaryForPrompts, null, 2)}
@@ -213,27 +230,27 @@ Opis powinien być zwięzły i informacyjny. Nie używaj formatowania HTML. Odpo
 
     let dataNatureDescriptionText;
     try {
+      console.log('[UPLOAD_CSV] Calling Gemini for dataNatureDescription...');
       const model = getGenerativeModel("gemini-2.5-flash-preview-05-20");
       const result = await model.generateContent(dataNaturePrompt);
       dataNatureDescriptionText = result.response.text();
+      console.log('[UPLOAD_CSV] Data nature description generated by Gemini.');
     } catch(geminiError) {
-      console.error("Gemini error during dataNatureDescription generation:", geminiError);
+      console.error("[UPLOAD_CSV] Gemini error during dataNatureDescription generation:", geminiError);
       return res.status(500).json({ 
         success: false, 
         message: `Failed to generate data nature description with AI: ${geminiError.message}` 
       });
     }
-    console.log('Data nature description generated by Gemini.');
 
-    // Save cleaned CSV
+    console.log('[UPLOAD_CSV] Saving cleaned CSV to Storage...');
     const cleanedCsvString = Papa.unparse(cleanedData);
     const cleanedCsvStoragePath = `cleaned_csvs/${analysisId}/cleaned_data.csv`;
     await bucket.file(cleanedCsvStoragePath).save(cleanedCsvString, { 
       metadata: { contentType: 'text/csv' } 
     });
-    console.log(`Cleaned CSV uploaded to Firebase Storage: ${cleanedCsvStoragePath}`);
+    console.log(`[UPLOAD_CSV] Cleaned CSV uploaded to Firebase Storage: ${cleanedCsvStoragePath}`);
 
-    // Prepare analysis document data
     const analysisDocData = {
       analysisName,
       originalFileName,
@@ -248,7 +265,6 @@ Opis powinien być zwięzły i informacyjny. Nie używaj formatowania HTML. Odpo
       status: "ready_for_topic_analysis",
     };
 
-    // Handle small datasets
     const SMALL_DATASET_THRESHOLD_CELLS = 200;
     const SMALL_DATASET_THRESHOLD_JSON_LENGTH = 200000;
     
@@ -257,20 +273,20 @@ Opis powinien być zwięzły i informacyjny. Nie używaj formatowania HTML. Odpo
         const tempStringified = JSON.stringify(cleanedData);
         if (tempStringified.length <= SMALL_DATASET_THRESHOLD_JSON_LENGTH) {
           analysisDocData.smallDatasetRawData = cleanedData;
-          console.log(`Small dataset (${rowCount}x${columnCount}), storing full cleanedData in Firestore.`);
+          console.log(`[UPLOAD_CSV] Small dataset (${rowCount}x${columnCount}), storing full cleanedData in Firestore.`);
         } else {
-          console.log(`Small dataset (${rowCount}x${columnCount}), but serialized JSON is too large (${tempStringified.length} bytes). Not storing.`);
+          console.log(`[UPLOAD_CSV] Small dataset (${rowCount}x${columnCount}), but serialized JSON is too large (${tempStringified.length} bytes). Not storing.`);
           analysisDocData.smallDatasetRawData = null;
         }
       } catch (stringifyError) {
-        console.error("Error stringifying small dataset:", stringifyError);
+        console.error("[UPLOAD_CSV] Error stringifying small dataset:", stringifyError);
         analysisDocData.smallDatasetRawData = null;
       }
     }
 
-    // Save to Firestore
+    console.log('[UPLOAD_CSV] Saving analysis document to Firestore...');
     await firestore.collection('analyses').doc(analysisId).set(analysisDocData);
-    console.log(`Analysis document created in Firestore with ID: ${analysisId}`);
+    console.log(`[UPLOAD_CSV] Analysis document created in Firestore with ID: ${analysisId}`);
 
     return res.status(200).json({
       success: true,
@@ -284,14 +300,13 @@ Opis powinien być zwięzły i informacyjny. Nie używaj formatowania HTML. Odpo
     });
 
   } catch (error) {
-    console.error('Error processing CSV:', error);
+    console.error('[UPLOAD_CSV] Error processing CSV:', error);
     
-    // Clean up temporary file if it exists
     if (tempFilepath) {
       try {
         await fs.unlink(tempFilepath);
       } catch (unlinkError) {
-        console.error('Error cleaning up temporary file:', unlinkError);
+        console.error('[UPLOAD_CSV] Error cleaning up temporary file:', unlinkError);
       }
     }
 

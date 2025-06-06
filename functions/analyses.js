@@ -3,6 +3,20 @@
 // Migrated from Vercel API route: api/analyses.js (Corrected to include full logic)
 
 const { admin, firestore } = require("./_lib/firebaseAdmin"); // admin might be needed for Timestamp check, firestore for query
+// At the very top of the handler function
+module.exports = async (req, res) => {
+  console.log('--- /api/analyses handler INVOKED ---');
+  console.log("Request path:", req.path);
+  console.log("GEMINI_API_KEY at runtime:", process.env.GEMINI_API_KEY);
+  console.log("STORAGE_BUCKET_URL at runtime:", process.env.STORAGE_BUCKET_URL);
+  try {
+    // ... your existing logic for fetching analyses ...
+    res.status(200).json({ message: "Analyses list from handler", data: [] }); // Example response
+  } catch (error) {
+    console.error("--- ERROR in /api/analyses handler ---:", error);
+    res.status(500).json({ error: "Internal server error in /api/analyses" });
+  }
+};
 
 // Handler function for GET /api/analyses
 // Lists all analyses from Firestore, ordered by creation date.

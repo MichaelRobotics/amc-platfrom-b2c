@@ -1,58 +1,59 @@
 // File: functions/index.js
-// Description: Updated to separate the file upload handler into its own dedicated Cloud Function.
+// Description: Refactored to use individual, purpose-built Cloud Functions instead of an Express router.
 
 const functions = require('firebase-functions');
-const express = require('express');
 const cors = require('cors');
 
-// Import all handler functions
-const analysesListHandler = require("./analyses");
-const analysisTopicDetailHandler = require("./analysisTopicDetail");
-const chatOnTopicHandler = require("./chat-on-topic");
-const initiateTopicAnalysisHandler = require("./initiate-topic-analysis");
-// Import the upload handler
+// --- Import Handlers ---
+// Note: These handler files now just export the core logic function.
 const uploadAndPreprocessCsvHandler = require("./upload-and-preprocess-csv");
+const getAnalysesListHandler = require("./analyses");
+const getAnalysisTopicDetailHandler = require("./analysisTopicDetail");
+const initiateTopicAnalysisHandler = require("./initiate-topic-analysis");
+const chatOnTopicHandler = require("./chat-on-topic");
 
-// --- Main Express App for JSON APIs ---
-const app = express();
-app.use(cors({ origin: true })); 
+// --- Default Runtime Settings ---
+const runtimeOpts = {
+    timeoutSeconds: 540,
+    memory: '8GB',
+    secrets: ["GEMINI_API_KEY", "STORAGE_BUCKET_URL"]
+};
 
-const apiRouter = express.Router();
-const jsonParser = express.json();
+// --- HTTP Request Functions (for REST-like endpoints and file uploads) ---
 
-// All JSON-based routes remain in the Express app
-apiRouter.get("/analyses", analysesListHandler);
-apiRouter.get("/analyses/:analysisId/topics/:topicId", analysisTopicDetailHandler);
-apiRouter.post("/chat-on-topic", jsonParser, chatOnTopicHandler);
-apiRouter.post("/initiate-topic-analysis", jsonParser, initiateTopicAnalysisHandler);
+// 1. Dedicated File Upload Function (MUST be onRequest)
+exports.uploadAndPreprocessCsv = functions.runWith(runtimeOpts).https.onRequest(uploadAndPreprocessCsvHandler);
 
-// --- The upload route has been REMOVED from the Express router ---
+// 2. Function to get the list of all analyses (could also be onCall, but onRequest is fine for GET)
+exports.getAnalysesList = functions.runWith(runtimeOpts).https.onRequest((req, res) => {
+    // We wrap the handler with CORS to allow GET requests from the browser
+    cors({ origin: true })(req, res, () => {
+        return getAnalysesListHandler(req, res);
+    });
+});
 
-app.use('/api', apiRouter);
+// 3. Function to get details of a specific analysis topic
+exports.getAnalysisTopicDetail = functions.runWith(runtimeOpts).https.onRequest((req, res) => {
+    cors({ origin: true })(req, res, () => {
+        // The handler will need to get analysisId and topicId from req.params or req.query
+        return getAnalysisTopicDetailHandler(req, res);
+    });
+});
 
-// --- Function Exports ---
 
-// 1. Export the main Express app for all JSON-based API calls
-exports.api = functions
-    .runWith({ 
-        timeoutSeconds: 120,
-        memory: '1GB',
-        secrets: [
-            "GEMINI_API_KEY", 
-            "STORAGE_BUCKET_URL"
-        ] 
-    })
-    .https.onRequest(app);
+// --- Callable Functions (for client-to-server RPC-style calls) ---
+// 'onCall' functions are the best practice for this type of invocation.
+// They automatically handle CORS, auth state, and data serialization.
 
-// 2. Export the file upload handler as a NEW, SEPARATE Cloud Function
-// This isolates it from Express and its body parsers.
-exports.uploadAndPreprocessCsv = functions
-    .runWith({
-        timeoutSeconds: 120, // Keep same settings
-        memory: '1GB',
-        secrets: [
-            "GEMINI_API_KEY", 
-            "STORAGE_BUCKET_URL"
-        ]
-    })
-    .https.onRequest(uploadAndPreprocessCsvHandler);
+// 4. Callable function to start a new analysis
+exports.initiateTopicAnalysis = functions.runWith(runtimeOpts).https.onCall(async (data, context) => {
+    // data contains { analysisId, topicId, topicDisplayName }
+    // context.auth contains user auth info if they are logged in.
+    return initiateTopicAnalysisHandler(data, context);
+});
+
+// 5. Callable function for chatting
+exports.chatOnTopic = functions.runWith(runtimeOpts).https.onCall(async (data, context) => {
+    // data contains { analysisId, topicId, userMessageText }
+    return chatOnTopicHandler(data, context);
+});

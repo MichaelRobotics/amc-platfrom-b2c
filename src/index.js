@@ -1,18 +1,36 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './index.css'; // Import global styles
+import './index.css';
 import App from './App';
-// If you have a reportWebVitals function and want to use it:
-// import reportWebVitals from './reportWebVitals';
+import { AnalysisProvider } from './contexts/AnalysisContext';
+
+// --- START: Firebase Initialization ---
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+
+// Your web app's Firebase configuration, taken from your project settings.
+const firebaseConfig = {
+  apiKey: "AIzaSyCK_Tjf3QYeKoY-EOaFXcoxlmUwz4WdOP4",
+  authDomain: "cross-analyzer-gcp.firebaseapp.com",
+  projectId: "cross-analyzer-gcp",
+  storageBucket: "cross-analyzer-gcp.firebasestorage.app",
+  messagingSenderId: "622141963650",
+  appId: "1:622141963650:web:d1ee674d372487ed19e39b",
+  measurementId: "G-ELF00TTLKW"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+// Initialize Analytics (optional, but good practice)
+const analytics = getAnalytics(app);
+// --- END: Firebase Initialization ---
+
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <AnalysisProvider>
+      <App />
+    </AnalysisProvider>
   </React.StrictMode>
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-// reportWebVitals();

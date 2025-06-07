@@ -1,35 +1,43 @@
 // File: functions/_lib/firebaseAdmin.js
-// Description: Initializes and exports the Firebase Admin SDK.
-// Primarily uses Application Default Credentials for Firebase Functions.
+// Description: Final corrected version that ignores undefined properties in Firestore.
 
 const admin = require("firebase-admin");
+const { getFirestore } = require("firebase-admin/firestore");
+const { getStorage } = require("firebase-admin/storage");
 
-try {
-  if (!admin.apps.length) {
-    const initConfig = {};
-    const storageBucketUrl = process.env.STORAGE_BUCKET_URL; // Ensure this matches your secret name
+let firestoreInstance;
+let storageInstance;
 
-    if (storageBucketUrl) {
-      initConfig.storageBucket = storageBucketUrl;
-      console.log(`Firebase Admin SDK using storage bucket: ${storageBucketUrl}`);
-    } else {
-      console.warn(
-        "STORAGE_BUCKET_URL environment variable not set. " +
-        "Firebase Admin SDK will use the default storage bucket. " +
-        "File uploads to a specific bucket might not work as expected if a specific bucket is intended."
-      );
+/**
+ * Initializes the Firebase Admin SDK if it hasn't been already.
+ * This is an idempotent function.
+ */
+function initializeFirebaseAdmin() {
+    if (admin.apps.length === 0) {
+        console.log('[FirebaseAdmin] Initializing Firebase Admin SDK...');
+        admin.initializeApp();
+        
+        // Initialize Firestore with the setting to ignore undefined values
+        firestoreInstance = getFirestore();
+        firestoreInstance.settings({ ignoreUndefinedProperties: true }); // THIS IS THE FIX
+        
+        storageInstance = getStorage();
+        console.log('[FirebaseAdmin] Firebase Admin SDK initialized successfully.');
     }
-
-    // When running on Firebase Functions, ADC is used by default if no credential is provided.
-    admin.initializeApp(initConfig);
-    console.log("Firebase Admin SDK initialized successfully using Application Default Credentials.");
-  }
-} catch (error) {
-  console.error("Firebase Admin SDK initialization error:", error.stack);
-  throw new Error(`Failed to initialize Firebase Admin SDK: ${error.message}`);
 }
 
-const firestore = admin.firestore();
-const storage = admin.storage();
+// Ensure initialization is run at least once to be ready.
+initializeFirebaseAdmin();
 
-module.exports = { admin, firestore, storage };
+// Export functions that return the initialized instances.
+module.exports = {
+    admin,
+    firestore: () => {
+        if (!firestoreInstance) initializeFirebaseAdmin();
+        return firestoreInstance;
+    },
+    storage: () => {
+        if (!storageInstance) initializeFirebaseAdmin();
+        return storageInstance;
+    }
+};

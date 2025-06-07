@@ -4,7 +4,6 @@
     "runtime": "nodejs18"
   },
   "hosting": {
-    
     "public": "build",
     "ignore": [
       "firebase.json",
@@ -15,6 +14,10 @@
       {
         "source": "/api/**",
         "function": "api"
+      },
+      {
+        "source": "/uploadAndPreprocessCsv",
+        "function": "uploadAndPreprocessCsv"
       },
       {
         "source": "**",

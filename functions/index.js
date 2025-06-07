@@ -1,6 +1,5 @@
 // File: functions/index.js
-// Description: Main Express router for the API. This file correctly omits a global
-// body-parser, which is required for the formidable route to work. No changes are needed here.
+// Description: Updated to separate the file upload handler into its own dedicated Cloud Function.
 
 const functions = require('firebase-functions');
 const express = require('express');
@@ -11,36 +10,29 @@ const analysesListHandler = require("./analyses");
 const analysisTopicDetailHandler = require("./analysisTopicDetail");
 const chatOnTopicHandler = require("./chat-on-topic");
 const initiateTopicAnalysisHandler = require("./initiate-topic-analysis");
-// Import the newly modernized CSV handler
+// Import the upload handler
 const uploadAndPreprocessCsvHandler = require("./upload-and-preprocess-csv");
 
-// Initialize Express app
+// --- Main Express App for JSON APIs ---
 const app = express();
-console.log('--- Express app initialized ---');
-
-// Apply CORS middleware to allow requests from your web app
 app.use(cors({ origin: true })); 
 
-// IMPORTANT: A global express.json() parser is NOT used here.
-// This allows formidable to handle the raw request stream on the upload route.
-
-// --- API Routes ---
 const apiRouter = express.Router();
-
-// Routes that expect a JSON body can have the middleware applied individually.
 const jsonParser = express.json();
+
+// All JSON-based routes remain in the Express app
 apiRouter.get("/analyses", analysesListHandler);
 apiRouter.get("/analyses/:analysisId/topics/:topicId", analysisTopicDetailHandler);
 apiRouter.post("/chat-on-topic", jsonParser, chatOnTopicHandler);
 apiRouter.post("/initiate-topic-analysis", jsonParser, initiateTopicAnalysisHandler);
 
-// This route for file uploads does NOT use the JSON parser.
-apiRouter.post("/upload-and-preprocess-csv", uploadAndPreprocessCsvHandler);
+// --- The upload route has been REMOVED from the Express router ---
 
-// Mount the API router
 app.use('/api', apiRouter);
 
-// Export the Express app as a single, powerful HTTP Cloud Function
+// --- Function Exports ---
+
+// 1. Export the main Express app for all JSON-based API calls
 exports.api = functions
     .runWith({ 
         timeoutSeconds: 120,
@@ -51,3 +43,16 @@ exports.api = functions
         ] 
     })
     .https.onRequest(app);
+
+// 2. Export the file upload handler as a NEW, SEPARATE Cloud Function
+// This isolates it from Express and its body parsers.
+exports.uploadAndPreprocessCsv = functions
+    .runWith({
+        timeoutSeconds: 120, // Keep same settings
+        memory: '1GB',
+        secrets: [
+            "GEMINI_API_KEY", 
+            "STORAGE_BUCKET_URL"
+        ]
+    })
+    .https.onRequest(uploadAndPreprocessCsvHandler);

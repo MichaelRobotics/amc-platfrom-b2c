@@ -83,6 +83,12 @@ function uploadAndPreprocessCsvHandler(req, res) {
         return;
     }
 
+    if (req.method == 'GET') {
+        console.warn(`Method ${req.method} is not allowed.`);
+        res.status(405).json({ success: false, message: `Method ${req.method} Not Allowed` });
+        return;
+    }
+
     console.log('--- Busboy CSV Handler INVOKED ---');
     const busboy = Busboy({ headers: req.headers });
 

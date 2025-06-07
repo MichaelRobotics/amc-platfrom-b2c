@@ -12,12 +12,24 @@
     ],
     "rewrites": [
       {
-        "source": "/api/**",
-        "function": "api"
-      },
-      {
         "source": "/uploadAndPreprocessCsv",
         "function": "uploadAndPreprocessCsv"
+      },
+      {
+        "source": "/getAnalysesList",
+        "function": "getAnalysesList"
+      },
+      {
+        "source": "/getAnalysisTopicDetail",
+        "function": "getAnalysisTopicDetail"
+      },
+      {
+        "source": "/initiateTopicAnalysis",
+        "function": "initiateTopicAnalysis"
+      },
+      {
+        "source": "/chatOnTopic",
+        "function": "chatOnTopic"
       },
       {
         "source": "**",

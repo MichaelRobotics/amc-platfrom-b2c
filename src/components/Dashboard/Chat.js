@@ -1,77 +1,72 @@
-// src/components/Dashboard/Chat.js
-import React, { useState, useEffect, useRef } from 'react';
+/**
+ * @fileoverview The Chat component.
+ * This component handles the chat interface. It is a "dumb" component
+ * that receives all its data and handlers via props and should not
+ * contain any Firebase initialization logic.
+ */
+import React, { useState, useRef, useEffect } from 'react';
 
-const Chat = ({ onSendMessage, messages, isSending }) => { // Added isSending prop
-    const [inputValue, setInputValue] = useState('');
-    const messagesEndRef = useRef(null);
+const Chat = ({ messages, onSendMessage, isSending }) => {
+    const [currentMessage, setCurrentMessage] = useState('');
+    const chatEndRef = useRef(null);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
-
-    useEffect(scrollToBottom, [messages]);
+    // Auto-scroll to the latest message
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
 
     const handleSend = () => {
-        // Prevent sending if already sending or if input is empty
-        if (isSending || !inputValue.trim()) {
-            return;
+        if (currentMessage.trim() && !isSending) {
+            onSendMessage(currentMessage.trim());
+            setCurrentMessage('');
         }
-        onSendMessage(inputValue.trim());
-        setInputValue('');
+    };
+
+    const handleKeyPress = (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            handleSend();
+        }
     };
 
     return (
-        <div id="chat-interaction-wrapper-react" className="symulowany-czat-container mt-8">
-            <h2 className="text-xl md:text-2xl font-bold mb-4 text-white">Dodatkowe Pytania</h2>
-            <div className="chat-input-container p-4 md:p-6">
-                <div 
-                    id="chat-messages-react" 
-                    className="space-y-3 mb-4 h-64 overflow-y-auto p-3 bg-gray-800 rounded-md border border-gray-700"
-                >
-                    {messages.map((msg, index) => (
-                        <div 
-                            // Use a more robust key if message IDs are available from backend
-                            key={msg.id || `${msg.sender}-${index}-${msg.text.substring(0,10)}`} 
-                            className={`flex mb-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
-                            <div 
-                                className={`p-3 rounded-lg max-w-xs lg:max-w-md text-sm break-words ${
-                                    msg.sender === 'user' ? 'bg-gray-600 text-white' 
-                                    : (msg.id && msg.id.includes('thinking') ? 'bg-yellow-600 text-white italic' // Style for thinking messages
-                                    : (msg.id && msg.id.includes('error') ? 'bg-red-700 text-white' // Style for error messages
-                                    : 'bg-blue-600 text-white'))
-                                }`}
-                            >
-                                {msg.text}
-                            </div>
+        <div className="chat-container mt-6 flex flex-col h-[400px] bg-gray-700/50 rounded-lg p-4">
+            <div className="chat-messages flex-1 overflow-y-auto mb-4 pr-2">
+                {messages.map((msg, index) => (
+                    <div key={msg.id || index} className={`message mb-3 flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`p-3 rounded-lg max-w-lg ${msg.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-600 text-gray-200'}`}>
+                            <p style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</p>
                         </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                </div>
-                <div className="flex items-center space-x-3">
-                    <input 
-                        type="text" 
-                        id="chat-input-field-react" 
-                        className="chat-input flex-1 p-3 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-                        placeholder={isSending ? "Agent analizuje..." : "Zadaj pytanie..."}
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyPress={(e) => {
-                            if (e.key === 'Enter' && !isSending) { // Prevent send on Enter if already sending
-                                handleSend();
-                            }
-                        }}
-                        disabled={isSending} // Disable input when isSending is true
-                    />
-                    <button 
-                        onClick={handleSend} 
-                        id="send-chat-button-react" 
-                        className="chat-button py-3 px-6 rounded-md text-sm font-medium"
-                        disabled={isSending || !inputValue.trim()} // Disable button when isSending or input is empty
-                    >
-                        {isSending ? 'Wysyłanie...' : 'Wyślij'}
-                    </button>
-                </div>
+                    </div>
+                ))}
+                {isSending && (
+                     <div className="message mb-3 flex justify-start">
+                        <div className="p-3 rounded-lg max-w-lg bg-gray-600 text-gray-200">
+                            <p className="thinking-indicator">
+                                <span>.</span><span>.</span><span>.</span>
+                            </p>
+                        </div>
+                    </div>
+                )}
+                <div ref={chatEndRef} />
+            </div>
+            <div className="chat-input flex items-center border-t border-gray-600 pt-4">
+                <textarea
+                    className="flex-1 bg-gray-800 text-gray-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Zadaj pytanie dotyczące analizy..."
+                    value={currentMessage}
+                    onChange={(e) => setCurrentMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    rows={2}
+                    disabled={isSending}
+                />
+                <button
+                    onClick={handleSend}
+                    disabled={isSending || !currentMessage.trim()}
+                    className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+                >
+                    {isSending ? 'Wysyłanie...' : 'Wyślij'}
+                </button>
             </div>
         </div>
     );

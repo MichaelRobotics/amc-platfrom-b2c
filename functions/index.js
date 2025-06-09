@@ -1,59 +1,66 @@
-// File: functions/index.js
-// Description: Refactored to use individual, purpose-built Cloud Functions instead of an Express router.
+/**
+ * @fileoverview Main entry point for all Cloud Functions.
+ * This file exports the new asynchronous functions for the analysis process,
+ * while retaining existing functions for data retrieval and chat.
+ *
+ * New Asynchronous Flow:
+ * 1. `requestAnalysis` (onCall): A lightweight function called by the frontend after
+ * a file is uploaded directly to Storage. It creates the initial analysis document.
+ * 2. `processUploadedCsv` (storage.onFinalize): A background function that triggers
+ * when the CSV is uploaded. It performs all the data preprocessing and initial
+ * AI summary, exactly like the original `upload-and-preprocess-csv.js`.
+ * 3. `analyzeTopic` (firestore.onCreate): A background function that triggers when
+ * a new topic document is created in Firestore. It performs the detailed topic
+ * analysis, exactly like the original `initiate-topic-analysis.js`.
+ */
 
 const functions = require('firebase-functions');
-const cors = require('cors');
+const admin = require('firebase-admin');
 
-// --- Import Handlers ---
-// Note: These handler files now just export the core logic function.
-const uploadAndPreprocessCsvHandler = require("./upload-and-preprocess-csv");
-const getAnalysesListHandler = require("./analyses");
-const getAnalysisTopicDetailHandler = require("./analysisTopicDetail");
-const initiateTopicAnalysisHandler = require("./initiate-topic-analysis");
-const chatOnTopicHandler = require("./chat-on-topic");
+// Initialize Firebase Admin SDK once
+admin.initializeApp();
 
-// --- Default Runtime Settings ---
-const runtimeOpts = {
+// --- Import Existing Function Handlers (Unchanged) ---
+const analysisTopicDetailHandler = require('./analysisTopicDetail');
+const analysesHandler =require('./analyses');
+const chatOnTopicHandler = require('./chat-on-topic');
+
+// --- Import NEW Asynchronous Architecture Handlers ---
+const requestAnalysisHandler = require('./request-analysis');
+const processUploadedCsvHandler = require('./process-uploaded-csv');
+const analyzeTopicHandler = require('./analyze-topic');
+
+
+// --- Reusable Function Configuration ---
+const functionBuilder = functions.region('europe-west1').runWith({
     timeoutSeconds: 540,
     memory: '8GB',
     secrets: ["GEMINI_API_KEY", "STORAGE_BUCKET_URL"]
-};
-
-// --- HTTP Request Functions (for REST-like endpoints and file uploads) ---
-
-// 1. Dedicated File Upload Function (MUST be onRequest)
-exports.uploadAndPreprocessCsv = functions.runWith(runtimeOpts).https.onRequest(uploadAndPreprocessCsvHandler);
-
-// 2. Function to get the list of all analyses (could also be onCall, but onRequest is fine for GET)
-exports.getAnalysesList = functions.runWith(runtimeOpts).https.onRequest((req, res) => {
-    // We wrap the handler with CORS to allow GET requests from the browser
-    cors({ origin: true })(req, res, () => {
-        return getAnalysesListHandler(req, res);
-    });
 });
 
-// 3. Function to get details of a specific analysis topic
-exports.getAnalysisTopicDetail = functions.runWith(runtimeOpts).https.onRequest((req, res) => {
-    cors({ origin: true })(req, res, () => {
-        // The handler will need to get analysisId and topicId from req.params or req.query
-        return getAnalysisTopicDetailHandler(req, res);
-    });
-});
+// --- EXPORTS for Existing Functions (Unchanged) ---
+exports.analysisTopicDetail = functionBuilder.https.onRequest(analysisTopicDetailHandler);
+exports.analyses = functionBuilder.https.onRequest(analysesHandler);
+exports.chatOnTopic = functionBuilder.https.onCall(chatOnTopicHandler);
 
+// --- EXPORTS for NEW Asynchronous Architecture ---
 
-// --- Callable Functions (for client-to-server RPC-style calls) ---
-// 'onCall' functions are the best practice for this type of invocation.
-// They automatically handle CORS, auth state, and data serialization.
+/**
+ * 1. A lightweight, callable HTTP function to kick off the analysis record creation.
+ * Triggered by the client after a direct file upload to Cloud Storage.
+ */
+exports.requestAnalysis = functionBuilder.https.onCall(requestAnalysisHandler);
 
-// 4. Callable function to start a new analysis
-exports.initiateTopicAnalysis = functions.runWith(runtimeOpts).https.onCall(async (data, context) => {
-    // data contains { analysisId, topicId, topicDisplayName }
-    // context.auth contains user auth info if they are logged in.
-    return initiateTopicAnalysisHandler(data, context);
-});
+/**
+ * 2. A background function triggered by new file uploads to Cloud Storage.
+ * This function handles the CSV preprocessing and initial summary generation.
+ */
+exports.processUploadedCsv = functionBuilder.storage.object().onFinalize(processUploadedCsvHandler);
 
-// 5. Callable function for chatting
-exports.chatOnTopic = functions.runWith(runtimeOpts).https.onCall(async (data, context) => {
-    // data contains { analysisId, topicId, userMessageText }
-    return chatOnTopicHandler(data, context);
-});
+/**
+ * 3. A background function triggered by the creation of a new topic document in Firestore.
+ * This function handles the detailed, in-depth AI analysis for that topic.
+ */
+exports.analyzeTopic = functionBuilder.firestore
+    .document('analyses/{analysisId}/topics/{topicId}')
+    .onCreate(analyzeTopicHandler);

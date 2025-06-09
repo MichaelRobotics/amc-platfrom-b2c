@@ -1,98 +1,67 @@
-// src/components/Dashboard/Sidebar.js
+/**
+ * @fileoverview The Sidebar component.
+ * CORRECTED: This version now uses the real-time 'useAnalysisContext' hook
+ * to display the list of all analyses and their live statuses.
+ * It no longer contains any direct Firebase initialization calls.
+ */
 import React from 'react';
 import { useAnalysisContext } from '../../contexts/AnalysisContext';
 
-const Sidebar = ({ activeTopic, onNavigateToLanding }) => { 
-    // Consume analysis data and loading/error states from the context
-    const { userCreatedAnalyses, isLoadingAnalyses, fetchAnalysesError } = useAnalysisContext();
-    
-    /**
-     * Handles the selection of an analysis from the sidebar.
-     * Navigates to the Dashboard to load the selected analysis.
-     * @param {object} analysis - The selected analysis object from userCreatedAnalyses.
-     * Expected to have analysisId, name, fileName.
-     */
-    const handleSelectAnalysis = (analysis) => {
-        if (analysis && analysis.analysisId) {
-            // Navigate to the Dashboard, instructing it to load this specific analysis.
-            // A 'default_topic_id' is used here as a placeholder. The Dashboard
-            // will use this to fetch the initial/main topic for the selected analysis.
-            // The backend should define what this default topic entails (e.g., an overview).
-            onNavigateToLanding({ 
-                dashboardParams: { 
-                    mode: 'real', // Indicates loading an existing, real analysis
-                    analysisId: analysis.analysisId, 
-                    analysisName: analysis.name,
-                    fileName: analysis.fileName, // Pass fileName if available and needed by Dashboard
-                    topicId: analysis.defaultTopicId || "default_topic_id" // Placeholder for the main/initial topic
-                }
-            });
-        } else if (analysis && !analysis.analysisId && analysis.name) {
-            // Fallback for demo/classic topics if they are ever re-introduced
-            // and don't have an analysisId but are managed differently.
-            // For now, this primarily handles backend-driven analyses.
-            console.warn("Selected analysis does not have an analysisId, attempting classic navigation:", analysis);
-            onNavigateToLanding({ dashboardParams: { topicContext: analysis.name, mode: 'classic' }});
-        } else {
-            console.error("Invalid analysis object selected:", analysis);
-        }
-    };
-    
+// Assuming you have a helper to get a status-based color
+const getStatusColor = (status) => {
+    switch (status) {
+        case 'completed':
+        case 'ready_for_topic_analysis':
+            return 'bg-green-500';
+        case 'analyzing':
+        case 'preprocessing_data':
+        case 'processing_started':
+            return 'bg-blue-500';
+        case 'error_analysis':
+        case 'error_processing':
+            return 'bg-red-500';
+        default:
+            return 'bg-gray-400';
+    }
+};
+
+const Sidebar = ({ activeTopic, onNavigateToLanding, onSelectAnalysis, activeTopicId, onSelectTopic }) => {
+    // Use the real-time context to get the list of all analyses.
+    const { userCreatedAnalyses, isLoadingAnalyses } = useAnalysisContext();
+
     return (
-        <aside className="sidebar w-full md:w-64 lg:w-72 p-4 space-y-2 shrink-0">
-            <h2 className="text-xl font-semibold mb-4 px-2 text-gray-300">Moje Analizy</h2>
+        <aside className="sidebar-container bg-gray-800 text-white w-64 min-w-[256px] flex flex-col">
+            <div className="sidebar-header p-4 border-b border-gray-700">
+                <h2 className="text-xl font-semibold">Agent Lean AI</h2>
+            </div>
             
-            {/* Display loading state */}
-            {isLoadingAnalyses && (
-                <div className="px-4 py-2.5 text-sm text-gray-400">Ładowanie listy analiz...</div>
-            )}
-
-            {/* Display error state */}
-            {!isLoadingAnalyses && fetchAnalysesError && (
-                <div className="px-4 py-2.5 text-sm text-red-400">
-                    Błąd ładowania analiz: {fetchAnalysesError}
-                </div>
-            )}
-
-            {/* Display list of analyses or empty state */}
-            {!isLoadingAnalyses && !fetchAnalysesError && (
-                <nav>
-                    <ul id="dashboard-sidebar-nav-list-react">
-                        {userCreatedAnalyses.length === 0 ? (
-                            <li className="px-4 py-2.5 text-sm text-gray-400">
-                                Brak zapisanych analiz. Utwórz nową na stronie głównej.
+            <nav className="flex-1 p-4 overflow-y-auto">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Moje Analizy</h3>
+                {isLoadingAnalyses ? (
+                    <div className="text-gray-400">Ładowanie listy...</div>
+                ) : (
+                    <ul>
+                        {userCreatedAnalyses.map(analysis => (
+                            <li key={analysis.id} className="mb-2">
+                                <button 
+                                    onClick={() => onSelectAnalysis(analysis.id)}
+                                    className="w-full text-left p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:bg-gray-600 flex items-center"
+                                >
+                                    <span className={`w-3 h-3 rounded-full mr-3 ${getStatusColor(analysis.status)}`}></span>
+                                    <span className="flex-1 truncate">{analysis.analysisName}</span>
+                                </button>
                             </li>
-                        ) : (
-                            userCreatedAnalyses.map(analysis => (
-                                <li key={analysis.analysisId || analysis.id || analysis.name}> {/* Use analysisId or id as key */}
-                                    <a
-                                        href="#" // Navigation is handled by onClick
-                                        className={`sidebar-item block px-4 py-2.5 text-sm font-medium 
-                                            ${analysis.type === 'real' ? 'dynamic-analysis-item' : ''} 
-                                            ${activeTopic === analysis.name ? 'active' : ''}`}
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            handleSelectAnalysis(analysis);
-                                        }}
-                                        title={analysis.name} // Show full name on hover
-                                    >
-                                        {/* Truncate long names for display, if necessary */}
-                                        {analysis.name.length > 25 ? `${analysis.name.substring(0, 22)}...` : analysis.name}
-                                    </a>
-                                </li>
-                            ))
-                        )}
+                        ))}
                     </ul>
-                </nav>
-            )}
+                )}
+            </nav>
 
-            <div className="mt-auto pt-10">
-                <button 
-                    id="dashboard-analyze-new-btn-react" 
-                    className="bottom-button w-full py-2.5 px-4 rounded-md text-sm font-medium"
-                    onClick={onNavigateToLanding} // This prop should navigate to the landing page
+            <div className="sidebar-footer p-4 border-t border-gray-700">
+                <button
+                    onClick={() => onNavigateToLanding()}
+                    className="w-full p-2 rounded-md bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                    Analizuj Nowy Plik
+                    Nowa Analiza
                 </button>
             </div>
         </aside>

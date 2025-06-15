@@ -4,7 +4,7 @@
  * the global NotificationsManager.
  */
 import React, { useState, useCallback } from 'react';
-import NewLandingPage from './components/LandingPage/NewLandingPage';
+import NewLandingPage from './components/MainMenu/MainMenuCrossAnalyzer';
 import Dashboard from './components/Dashboard/Dashboard';
 import NotificationsManager from './components/Notifications/NotificationsManager'; // Import the new component
 import { AnalysisProvider } from './contexts/AnalysisContext';

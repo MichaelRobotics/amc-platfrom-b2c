@@ -39,6 +39,24 @@
           }
         },
         {
+          "source": "/api/getAnalysesList", 
+          "function": {
+            "functionId": "getAnalysesList",
+            "region": "europe-west1"
+          }
+        },
+        {
+          "source": "/api/getAnalysisTopicDetail", 
+          "function": {
+            "functionId": "getAnalysisTopicDetail",
+            "region": "europe-west1"
+          }
+        },
+        {
+          "source": "/app/analyzer/**", 
+          "destination": "/analyzer/index.html"
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }

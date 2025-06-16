@@ -1,39 +1,21 @@
 {
-  "name": "cross-analyzer-gcp",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "dependencies": {
-    "busboy": "^1.6.0",
-    "firebase": "^11.9.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "react-scripts": "^5.0.1",
-    "tailwindcss": "^3.3.0"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
+    "name": "amc-platfrom-b2c-platform-test",
+    "version": "1.0.0",
+    "workspaces": [
+      "apps/*",
+      "packages/*"
     ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "scripts": {
+      "build": "npm run build --workspace=platform-shell && npm run build --workspace=cross-analyzer-agent",
+      "predeploy": "rm -rf apps/platform-shell/build/analyzer && npm run build && mkdir -p apps/platform-shell/build/analyzer && cp -r apps/cross-analyzer-agent/build/* apps/platform-shell/build/analyzer",
+      "deploy": "npm run predeploy && firebase deploy",
+      "start": "npm run start --workspace=platform-shell",
+      "start:analyzer": "npm run start --workspace=cross-analyzer-agent",
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+      "firebase": "^9.17.2",
+      "firebase-admin": "^12.1.0"
+    }
   }
-}
+  

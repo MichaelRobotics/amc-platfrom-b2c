@@ -1,68 +1,90 @@
 {
-  "functions": {
-    "source": "functions",
-    "runtime": "nodejs18"
-  },
-  "hosting": {
-    "public": "build",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/uploadAndPreprocessCsv",
-        "function": "uploadAndPreprocessCsv"
-      },
-      {
-        "source": "/getAnalysesList",
-        "function": "getAnalysesList"
-      },
-      {
-        "source": "/getAnalysisTopicDetail",
-        "function": "getAnalysisTopicDetail"
-      },
-      {
-        "source": "/initiateTopicAnalysis",
-        "function": "initiateTopicAnalysis"
-      },
-      {
-        "source": "/chatOnTopic",
-        "function": "chatOnTopic"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  },
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
-  "storage": {
-    "rules": "storage.rules"
-  },
-  "emulators": {
-    "auth": {
-      "port": 9099
-    },
-    "functions": {
-      "port": 5001
-    },
     "firestore": {
-      "port": 8081
+      "rules": "firestore.rules",
+      "indexes": "firestore.indexes.json"
     },
+    "functions": [
+      {
+        "source": "apps/cross-analyzer-agent/functions",
+        "codebase": "cross-analyzer-agent",
+        "ignore": [
+          "node_modules",
+          ".git",
+          "firebase-debug.log",
+          "firebase-debug.*.log"
+        ]
+      }
+    ],
     "hosting": {
-      "port": 5000
+      "target": "platform-shell",
+      "public": "apps/platform-shell/build",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/api/requestAnalysis",
+          "function": {
+            "functionId": "requestAnalysis",
+            "region": "europe-west1"
+          }
+        },
+        {
+          "source": "/api/chatOnTopic",
+          "function": {
+            "functionId": "chatOnTopic",
+            "region": "europe-west1"
+          }
+        },
+        {
+          "source": "/api/getAnalysesList", 
+          "function": {
+            "functionId": "getAnalysesList",
+            "region": "europe-west1"
+          }
+        },
+        {
+          "source": "/api/getAnalysisTopicDetail", 
+          "function": {
+            "functionId": "getAnalysisTopicDetail",
+            "region": "europe-west1"
+          }
+        },
+        {
+          "source": "/app/analyzer/**", 
+          "destination": "/analyzer/index.html"
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
     },
     "storage": {
-      "port": 9199
+      "rules": "storage.rules"
     },
-    "ui": {
-      "enabled": true
-    },
-    "singleProjectMode": true
+    "emulators": {
+      "auth": {
+        "port": 9099
+      },
+      "functions": {
+        "port": 5001
+      },
+      "firestore": {
+        "port": 8080
+      },
+      "hosting": {
+        "port": 5000
+      },
+      "storage": {
+        "port": 9199
+      },
+      "ui": {
+        "enabled": true
+      },
+      "singleProjectMode": true
+    }
   }
-}
+  

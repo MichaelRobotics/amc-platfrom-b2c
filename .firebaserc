@@ -1,5 +1,17 @@
 {
   "projects": {
-    "default": "cross-analyzer-gcp"
+    "default": "your-b2c-project-id"
+  },
+  "targets": {
+    "your-b2c-project-id": {
+      "hosting": {
+        "platform-shell": [
+          "your-b2c-project-id"
+        ],
+        "cross-analyzer-gcp": [
+          "cross-analyzer-gcp"
+        ]
+      }
+    }
   }
 }

@@ -1,181 +1,232 @@
 /**
- * @fileoverview The main landing page component for the cross-analyzer.
- * MERGED VERSION: This component combines the original, full-featured UI/UX with the
- * new, secure, and asynchronous backend architecture.
+ * @fileoverview The main Dashboard component.
+ * FULLY REFACTORED AND RESTORED:
+ * - Merges the original UI/UX with the new asynchronous multi-topic architecture.
+ * - Fetches a list of all user's analyses for the sidebar.
+ * - Uses real-time listeners for the selected analysis and its topics subcollection.
+ * - Handles multiple topics per analysis, allowing users to create and switch between them.
+ * - Implements security checks to ensure users can only view their own data.
  */
-import React, { useState, useRef, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ref, uploadBytes } from "firebase/storage";
+import React, { useState, useEffect, useContext } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
+import { doc, onSnapshot, collection, setDoc, serverTimestamp } from "firebase/firestore";
 
 // Import shared services and contexts from the monorepo structure
-import { storage } from '../../../../packages/firebase-helpers/client';
+import { firestore } from '../../../../packages/firebase-helpers/client';
 import { AuthContext } from '../../../../platform-shell/src/contexts/AuthContext';
+import apiClient from '../../services/apiClient';
 
-// Import local components and services
-import NewStyledButton from '../UI/NewStyledButton';
-import NewWitnessModal from '../Modals/NewWitnessModal';
-import AnalysisNameModal from '../Modals/AnalysisNameModal';
-import apiClient from '../../services/apiClient'; // Using the updated apiClient
-import { useToast } from '../../contexts/ToastContext'; // Using modern toast for consistency
-
-// SVG Paths from original for UI consistency
-const UploadIconPath = "M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 10.5a2.25 2.25 0 002.25 2.25c1.004 0 1.875-.694 2.148-1.683A5.25 5.25 0 0112 6.75c2.118 0 3.906 1.226 4.602 3.017.273.989 1.144 1.683 2.148 1.683A2.25 2.25 0 0021 10.5M3 16.5v-6M21 16.5v-6";
-const AnalyzeIconPath = "M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75";
-const BrowseIconPath = "M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776";
-const WitnessIconPath = "M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244";
+// Import local components
+import Sidebar from './Sidebar';
+import AnalysisContent from './AnalysisContent';
+import Chat from './Chat';
+import { useToast } from '../../contexts/ToastContext';
+import CustomMessage from '../UI/CustomMessage';
 
 
-const MainMenuCrossAnalyzer = () => {
-    // State from original component
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [statusMessage, setStatusMessage] = useState('');
-    const [statusType, setStatusType] = useState('info');
-    const [isLoading, setIsLoading] = useState(false);
-    const [isWitnessModalOpen, setIsWitnessModalOpen] = useState(false);
-    const [fileInputButtonLabel, setFileInputButtonLabel] = useState('Wybierz plik z danymi');
-    const [analyzeButtonCueClass, setAnalyzeButtonCueClass] = useState('');
-    const [isLogoVisible, setIsLogoVisible] = useState(false);
-    const [isAnalysisNameModalOpen, setIsAnalysisNameModalOpen] = useState(false);
-    const [initialModalAnalysisName, setInitialModalAnalysisName] = useState('');
-    
-    const csvFileInputRef = useRef(null);
+const Dashboard = () => {
     const { currentUser } = useContext(AuthContext);
-    const navigate = useNavigate(); // Using navigate hook from react-router-dom
+    const { analysisId: urlAnalysisId } = useParams();
+    const navigate = useNavigate();
     const { showToast } = useToast();
 
+    // State
+    const [allAnalyses, setAllAnalyses] = useState([]); // For the sidebar list
+    const [activeAnalysis, setActiveAnalysis] = useState(null); // The full data object for the selected analysis
+    const [activeTopics, setActiveTopics] = useState([]); // All topics for the active analysis
+    const [selectedTopic, setSelectedTopic] = useState(null); // The currently selected topic object
+    const [isLoading, setIsLoading] = useState(true);
+    const [monitoringMessage, setMonitoringMessage] = useState('Wybierz analizę z listy...');
+    const [monitoringStatus, setMonitoringStatus] = useState('idle'); // idle, monitoring, ready, error
+
+    // 1. Fetch the list of all analyses for the current user once.
     useEffect(() => {
-        const timer = setTimeout(() => { setIsLogoVisible(true); }, 300);
-        return () => clearTimeout(timer);
-    }, []);
-    
-    // Using modern toast for user feedback, but keeping internal status for multi-step processes
-    const showAppStatusMessage = (message, type = 'info') => {
-        setStatusMessage(message);
-        setStatusType(type);
-    };
+        if (!currentUser) return;
 
-    const handleFileChange = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            setSelectedFile(file);
-            const displayFileName = file.name.length > 25 ? `${file.name.substring(0, 22)}...` : file.name;
-            setFileInputButtonLabel(displayFileName);
-            showToast(`Wybrano plik: ${file.name}`, 'success');
-            setInitialModalAnalysisName(file.name.replace(/\.[^/.]+$/, ""));
-            setAnalyzeButtonCueClass('analyze-cue'); // Trigger animation
-            setTimeout(() => setAnalyzeButtonCueClass(''), 1400);
-        } else {
-            setSelectedFile(null);
-            setFileInputButtonLabel('Wybierz plik z danymi');
-            setInitialModalAnalysisName('');
-        }
-        if (csvFileInputRef.current) {
-            csvFileInputRef.current.value = "";
-        }
-    };
+        setIsLoading(true);
+        apiClient.getAnalyses()
+            .then(result => {
+                if (result.data.success) {
+                    setAllAnalyses(result.data.analyses);
+                    if (!urlAnalysisId && result.data.analyses.length > 0) {
+                        // If no analysisId in URL, navigate to the first one in the list.
+                        navigate(`/dashboard/${result.data.analyses[0].analysisId}`);
+                    }
+                } else {
+                    throw new Error(result.data.message || "Failed to fetch analyses list.");
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching analyses list:", error);
+                showToast(error.message, "error");
+            })
+            .finally(() => {
+                if (!urlAnalysisId) setIsLoading(false);
+            });
+    }, [currentUser, navigate, showToast]); // Removed urlAnalysisId dependency to prevent re-fetching list on navigation
 
-    const handleAnalyzeFileClick = () => {
-        if (!currentUser) {
-            showToast('Proszę się zalogować, aby rozpocząć analizę.', 'error');
-            return;
-        }
-        if (!selectedFile) {
-            showToast('Proszę wybrać plik z danymi.', 'error');
-            return;
-        }
-        setIsAnalysisNameModalOpen(true);
-    };
-
-    // This function now implements the NEW asynchronous flow
-    const processAnalysisWithName = async (analysisName) => {
-        setIsAnalysisNameModalOpen(false);
-        if (!selectedFile || !currentUser) {
-            showToast('Błąd: Plik lub użytkownik nie jest już dostępny.', 'error');
+    // 2. Listen to the specific analysis document identified by the URL
+    useEffect(() => {
+        if (!currentUser || !urlAnalysisId) {
+            setMonitoringStatus('idle');
+            setMonitoringMessage(currentUser ? 'Wybierz analizę z listy...' : 'Zaloguj się, aby zobaczyć analizy.');
             return;
         }
 
         setIsLoading(true);
-        const analysisId = uuidv4();
-        const originalFileName = selectedFile.name;
-        const userId = currentUser.uid;
-
-        try {
-            showAppStatusMessage(`Krok 1/2: Wysyłanie pliku ${originalFileName}...`, 'info');
-            // The new architecture uses a simpler path, which is handled by the backend function.
-            const storagePath = `raw_csvs/${analysisId}/${originalFileName}`;
-            const storageRef = ref(storage, storagePath);
-            await uploadBytes(storageRef, selectedFile);
-            
-            showAppStatusMessage(`Krok 2/2: Inicjowanie analizy "${analysisName}"...`, 'info');
-            
-            // Calling the NEW backend function with a single data object.
-            const result = await apiClient.requestAnalysis({ analysisId, originalFileName, analysisName, userId });
-
-            if (result.data.success) {
-                showAppStatusMessage(`Analiza rozpoczęta! Przekierowuję do pulpitu...`, 'success');
-                setTimeout(() => {
-                    // The new architecture navigates directly to the dashboard for the new analysis.
-                    // The backend will process the file asynchronously.
-                    navigate(`/dashboard/${result.data.analysisId}`);
-                }, 1500);
-            } else {
-                throw new Error(result?.data?.message || 'Nie udało się zainicjować analizy.');
+        setMonitoringMessage('Weryfikacja dostępu i statusu analizy...');
+        const analysisDocRef = doc(firestore, "analyses", urlAnalysisId);
+        
+        const unsubAnalysis = onSnapshot(analysisDocRef, (doc) => {
+            if (!doc.exists()) {
+                setMonitoringStatus('error');
+                setMonitoringMessage(`Błąd: Analiza o ID ${urlAnalysisId} nie została znaleziona.`);
+                setActiveAnalysis(null);
+                setIsLoading(false);
+                return;
             }
-        } catch (error) {
-            showAppStatusMessage(`Błąd krytyczny: ${error.message || 'Nie udało się rozpocząć procesu.'}`, 'error');
-            showToast(`Error: ${error.message}`, 'error');
+            
+            const analysisData = doc.data();
+            
+            if (analysisData.userId !== currentUser.uid) {
+                setMonitoringStatus('error');
+                setMonitoringMessage('Błąd: Brak uprawnień do wyświetlenia tej analizy.');
+                showToast("You do not have permission to view this analysis.", "error");
+                setActiveAnalysis(null);
+                setIsLoading(false);
+                navigate('/');
+                return;
+            }
+            
+            setActiveAnalysis({ id: doc.id, ...analysisData });
+
+            if (analysisData.status.startsWith('error')) {
+                setMonitoringStatus('error');
+                setMonitoringMessage(`Błąd przetwarzania: ${analysisData.errorMessage || 'Nieznany błąd'}`);
+            } else if (analysisData.status !== 'ready_for_topic_analysis') {
+                setMonitoringStatus('monitoring');
+                setMonitoringMessage(`Status: ${analysisData.status.replace(/_/g, ' ')}...`);
+            } else {
+                 setMonitoringStatus('ready');
+                 setMonitoringMessage('Gotowe do analizy tematu.');
+            }
+
             setIsLoading(false);
+        }, (error) => {
+            console.error("Error listening to analysis doc:", error);
+            setMonitoringStatus('error');
+            setMonitoringMessage('Błąd serwera podczas ładowania analizy.');
+            setIsLoading(false);
+        });
+
+        // Also listen to the topics subcollection for this analysis
+        const topicsCollectionRef = collection(firestore, "analyses", urlAnalysisId, "topics");
+        const unsubTopics = onSnapshot(topicsCollectionRef, (snapshot) => {
+            const topicsData = snapshot.docs.map(t => ({ id: t.id, ...t.data() }));
+            setActiveTopics(topicsData);
+            
+            // If there's no selected topic yet, or the selected one was deleted, select the first available.
+            if (!selectedTopic || !topicsData.find(t => t.id === selectedTopic.id)) {
+                 if (topicsData.length > 0) {
+                    setSelectedTopic(topicsData[0]);
+                } else {
+                    setSelectedTopic(null); // No topics exist
+                }
+            }
+        });
+
+        return () => {
+            unsubAnalysis();
+            unsubTopics();
+        };
+
+    }, [urlAnalysisId, currentUser, navigate, showToast]);
+
+
+    const handleSelectAnalysis = (analysisId) => {
+        if (analysisId !== urlAnalysisId) {
+            // Clear old state before navigating to give user feedback
+            setActiveAnalysis(null);
+            setActiveTopics([]);
+            setSelectedTopic(null);
+            setIsLoading(true);
+            navigate(`/dashboard/${analysisId}`);
         }
     };
-    
-    const handleBrowseAnalyses = () => {
-         if (!currentUser) {
-            showToast('Proszę się zalogować, aby przeglądać analizy.', 'error');
+
+    const handleTopicSubmit = async (topicName) => {
+        if (!topicName.trim() || !urlAnalysisId) {
+            showToast("Nazwa tematu nie może być pusta.", "error");
             return;
         }
-        // Navigate to the dashboard, which will show a list of analyses.
-        navigate('/dashboard'); 
-    };
+        const topicId = uuidv4();
+        const topicDocRef = doc(firestore, 'analyses', urlAnalysisId, 'topics', topicId);
 
-    const handleWitnessButtonClick = () => {
-        setIsWitnessModalOpen(true);
+        try {
+            await setDoc(topicDocRef, {
+                topicDisplayName: topicName,
+                status: "analyzing",
+                createdAt: serverTimestamp(),
+                lastUpdatedAt: serverTimestamp(),
+            });
+            showToast(`Temat "${topicName}" został przesłany do analizy.`, "info");
+        } catch (error) {
+            console.error("Error submitting new topic:", error);
+            showToast(`Błąd: ${error.message}`, "error");
+        }
     };
     
-    const isDisabled = !currentUser || isLoading;
-
-    return (
-        <div className="new-landing-page-body-wrapper">
-            <div className="analyzer-card">
-                <div className="analyzer-card-header">
-                    <img
-                        src="https://firebasestorage.googleapis.com/v0/b/csv-data-analyzer-e3207.firebasestorage.app/o/Twinn%20Agent%20AI.png?alt=media&token=08be442b-f6fb-4a00-9993-1fd3be2ddab7"
-                        alt="Twinn Agent AI - Twinn Witness Logo"
-                        className={`header-logo-img ${isLogoVisible ? 'logo-visible' : 'logo-hidden'}`}
-                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/300x75/334155/CBD5E1?text=Logo+Error'; e.target.alt = 'Błąd ładowania logo'; }}
+    // Render logic
+    const renderContent = () => {
+        if (isLoading) {
+            return <CustomMessage message="Ładowanie pulpitu analizy..." />;
+        }
+        if (!activeAnalysis) {
+            return <CustomMessage message={monitoringMessage || "Wybierz analizę z listy."} type={monitoringStatus === 'error' ? 'error' : 'info'} />;
+        }
+        if (monitoringStatus !== 'ready' && activeTopics.length === 0) {
+             return <CustomMessage message={monitoringMessage} type={monitoringStatus === 'error' ? 'error' : 'info'} />;
+        }
+        return (
+             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+                <div style={{ flex: 3, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <AnalysisContent
+                        key={selectedTopic ? selectedTopic.id : 'no-topic'}
+                        activeTopic={selectedTopic}
+                        analysisDetails={activeAnalysis}
                     />
                 </div>
-                <p className="analyzer-subtitle">Zwiększ efektywność z Agent Lean AI. Analizuj dane lub przeglądaj gotowe raporty.</p>
-                <input type="file" id="csvFileInput" accept=".csv" style={{ display: 'none' }} ref={csvFileInputRef} onChange={handleFileChange} disabled={isDisabled} />
-                
-                <NewStyledButton isFileInputLabel htmlFor="csvFileInput" id="fileSelectBtn" label={fileInputButtonLabel} variant="file-input" iconSvgPath={UploadIconPath} disabled={isDisabled} />
-                <NewStyledButton id="analyzeFileBtn" label="Analizuj Plik" variant="primary" iconSvgPath={AnalyzeIconPath} onClick={handleAnalyzeFileClick} disabled={!selectedFile || isDisabled} isLoading={isLoading} loadingText="Przetwarzam..." className={analyzeButtonCueClass} />
-                
-                <div id="statusMessagesContainer">
-                    {statusMessage && (<div className={`status-message status-${statusType}`}>{statusMessage}</div>)}
+                <div style={{ flex: 2, borderLeft: '1px solid #ccc', overflowY: 'auto' }}>
+                    {selectedTopic ? (
+                        <Chat
+                            key={selectedTopic.id}
+                            analysisId={urlAnalysisId}
+                            topicId={selectedTopic.id}
+                        />
+                    ) : (
+                        <CustomMessage message="Wybierz temat z listy lub utwórz nowy, aby rozpocząć czat." />
+                    )}
                 </div>
-                
-                <div className="separator">LUB</div>
+             </div>
+        );
+    }
 
-                <NewStyledButton id="browseAnalysesBtn" label="Przeglądaj Analizy" variant="secondary" iconSvgPath={BrowseIconPath} onClick={handleBrowseAnalyses} disabled={isDisabled} />
-                <NewStyledButton id="witnessBtn" label="Połącz z Witness Digital Twin" variant="tertiary" iconSvgPath={WitnessIconPath} onClick={handleWitnessButtonClick} disabled={isDisabled} />
-            </div>
-            <p className="footer-text">&copy; 2024-2025 Advanced Manufacturing Consulting. Wszelkie prawa zastrzeżone.</p>
-            
-            <NewWitnessModal isOpen={isWitnessModalOpen} onClose={() => setIsWitnessModalOpen(false)} />
-            <AnalysisNameModal isOpen={isAnalysisNameModalOpen} onClose={() => setIsAnalysisNameModalOpen(false)} onSubmit={processAnalysisWithName} initialName={initialModalAnalysisName} showMessage={showToast} />
+    return (
+        <div style={{ display: 'flex', height: 'calc(100vh - 64px)' /* Adjust for navbar */, backgroundColor: '#f0f2f5' }}>
+            <Sidebar
+                userAnalyses={allAnalyses}
+                activeAnalysisId={urlAnalysisId}
+                onSelectAnalysis={handleSelectAnalysis}
+                topics={activeTopics}
+                activeTopicId={selectedTopic?.id}
+                onSelectTopic={setSelectedTopic}
+                onTopicSubmit={handleTopicSubmit}
+                isReadyForTopic={activeAnalysis?.status === 'ready_for_topic_analysis'}
+            />
+            {renderContent()}
         </div>
     );
 };
 
-export default MainMenuCrossAnalyzer;
+export default Dashboard;

@@ -1,5 +1,5 @@
 {
-  "name": "cross-analyzer-gcp",
+  "name": "cross-analyzer-agent",
   "version": "0.1.0",
   "private": true,
   "scripts": {

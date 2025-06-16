@@ -9,8 +9,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Lazy load the heavy cross-analyzer app for better initial page load.
 // This uses the workspace name defined in the root package.json.
-// Note: This assumes cross-analyzer-gcp's App.js is its default export.
-const CrossAnalyzerApp = lazy(() => import('cross-analyzer-gcp/src/App'));
+const CrossAnalyzerApp = lazy(() => import('cross-analyzer-agent/src/App'));
 
 /**
  * The root component of the platform-shell. It defines all top-level routes.
@@ -34,7 +33,7 @@ function App() {
             <Route 
               path="/app/analyzer/*" 
               element={
-                <ProtectedRoute productKey="cross-analyzer-gcp">
+                <ProtectedRoute productKey="cross-analyzer-agent">
                   <CrossAnalyzerApp />
                 </ProtectedRoute>
               } 

@@ -1,40 +1,19 @@
 {
-    "name": "cross-analyzer-gcp",
-    "version": "0.1.0",
+    "name": "amc-platform-b2c",
     "private": true,
+    "workspaces": [
+      "apps/*",
+      "packages/*"
+    ],
     "scripts": {
-      "start": "react-scripts start",
-      "build": "react-scripts build",
-      "test": "react-scripts test",
-      "eject": "react-scripts eject"
-    },
-    "dependencies": {
-      "busboy": "^1.6.0",
-      "firebase": "^11.9.0",
-      "react": "^18.2.0",
-      "react-dom": "^18.2.0",
-      "uuid": "^9.0.1"
+      "dev": "npm run dev --workspace=platform-shell",
+      "dev:analyzer": "npm run dev --workspace=cross-analyzer-gcp",
+      "build": "npm run build --workspaces --if-present",
+      "deploy": "npm run build && firebase deploy",
+      "deploy:shell": "npm run build --workspace=platform-shell && firebase deploy --only hosting:platform-shell",
+      "deploy:analyzer": "npm run build --workspace=cross-analyzer-gcp && firebase deploy --only hosting:cross-analyzer-gcp,functions:cross-analyzer-gcp"
     },
     "devDependencies": {
-      "react-scripts": "^5.0.1",
-      "tailwindcss": "^3.3.0"
-    },
-    "eslintConfig": {
-      "extends": [
-        "react-app",
-        "react-app/jest"
-      ]
-    },
-    "browserslist": {
-      "production": [
-        ">0.2%",
-        "not dead",
-        "not op_mini all"
-      ],
-      "development": [
-        "last 1 chrome version",
-        "last 1 firefox version",
-        "last 1 safari version"
-      ]
+      "firebase-tools": "^13.11.0"
     }
   }

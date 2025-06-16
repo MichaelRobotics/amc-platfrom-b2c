@@ -5,7 +5,7 @@
         "queryScope": "COLLECTION",
         "fields": [
           {
-            "fieldPath": "ownerId",
+            "fieldPath": "userId",
             "order": "ASCENDING"
           },
           {
@@ -17,3 +17,4 @@
     ],
     "fieldOverrides": []
   }
+  

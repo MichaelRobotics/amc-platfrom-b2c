@@ -1,9 +1,9 @@
 /**
  * @fileoverview API client for interacting with Firebase Cloud Functions.
- * This version is updated for the monorepo architecture.
- * - It imports the 'functions' service from the shared firebase-helpers package.
- * - It exclusively uses modern, secure httpsCallable functions.
- * - Outdated fetch/URL-based calls have been removed.
+ * CORRECTED FOR MONOREPO:
+ * - Imports the 'functions' service from the shared firebase-helpers package.
+ * - The 'requestAnalysis' function now accepts and passes the 'userId' to the backend,
+ * which is critical for establishing data ownership and security.
  */
 import { httpsCallable } from "firebase/functions";
 // The 'packages' alias is configured by the monorepo's workspace setup.
@@ -14,14 +14,18 @@ import { functions } from 'packages/firebase-helpers/client';
  * @param {string} analysisId - The client-generated UUID for the analysis.
  * @param {string} originalFileName - The name of the file uploaded.
  * @param {string} analysisName - The user-provided name for the analysis.
+ * @param {string} userId - The UID of the currently authenticated user.
  * @returns {Promise<any>} The result from the Cloud Function.
  */
-export const requestAnalysis = async (analysisId, originalFileName, analysisName) => {
+export const requestAnalysis = async (analysisId, originalFileName, analysisName, userId) => {
     try {
-        console.log('Calling requestAnalysis with:', { analysisId, originalFileName, analysisName });
+        console.log('Calling requestAnalysis with:', { analysisId, originalFileName, analysisName, userId });
         // It's best practice to specify the function name directly.
         const requestAnalysisFunction = httpsCallable(functions, 'cross-analyzer-gcp-requestAnalysis');
-        const result = await requestAnalysisFunction({ analysisId, originalFileName, analysisName });
+        
+        // The userId is now included in the payload sent to the function.
+        const result = await requestAnalysisFunction({ analysisId, originalFileName, analysisName, userId });
+        
         return result.data;
     } catch (error) {
         console.error("Error requesting analysis:", error);
@@ -47,7 +51,3 @@ export const chatOnTopic = async (analysisId, topicId, chatHistory) => {
         throw error;
     }
 };
-
-// NOTE: getAnalysesList and getAnalysisTopicDetail have been removed.
-// This data is now fetched directly and more efficiently from Firestore
-// using real-time listeners in the AnalysisContext.

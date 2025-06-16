@@ -1,79 +1,80 @@
 /**
- * @fileoverview React Context for managing and providing a real-time list
- * of a user's created analyses.
- * This version is updated for the monorepo architecture.
- * - It uses the shared `useAuth` hook to get the current user's ID.
- * - The Firestore query is now filtered to only fetch documents belonging to that user.
+ * @fileoverview A React context to provide a real-time list of a user's analyses.
+ * FULLY REFACTORED FOR MONOREPO:
+ * - Imports 'firestore' from the shared 'packages/firebase-helpers/client'.
+ * - Imports and uses the 'useAuth' hook from 'platform-shell'.
+ * - The Firestore query is now securely scoped to only fetch analyses belonging
+ * to the currently logged-in user, preventing data leaks.
  */
-import React, { useState, useEffect, createContext, useContext } from 'react';
-import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
-// Import the shared Firestore instance
-import { db } from 'packages/firebase-helpers/client';
-// Import the shared Auth hook to identify the current user
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+
+// Import shared services and contexts from the monorepo structure
+import { firestore as db } from 'packages/firebase-helpers/client';
 import { useAuth } from 'platform-shell/src/contexts/AuthContext';
 
 const AnalysisContext = createContext();
 
+/**
+ * Custom hook to easily access the analysis context.
+ * e.g., const { userCreatedAnalyses, isLoadingAnalyses } = useAnalysisContext();
+ */
 export const useAnalysisContext = () => {
-    const context = useContext(AnalysisContext);
-    if (context === undefined) {
-        throw new Error('useAnalysisContext must be used within an AnalysisProvider');
-    }
-    return context;
+    return useContext(AnalysisContext);
 };
 
+/**
+ * The AnalysisProvider component wraps parts of the application that need access
+ * to the list of the user's analyses.
+ * @param {{ children: React.ReactNode }} props
+ */
 export const AnalysisProvider = ({ children }) => {
-    const { currentUser } = useAuth(); // Get the current user from the global context
     const [userCreatedAnalyses, setUserCreatedAnalyses] = useState([]);
     const [isLoadingAnalyses, setIsLoadingAnalyses] = useState(true);
-    const [fetchAnalysesError, setFetchAnalysesError] = useState(null);
+    const { currentUser } = useAuth(); // Get the current user from the global context
 
     useEffect(() => {
-        // Only attempt to fetch data if there is a logged-in user.
+        // If there's no user logged in, clear any existing data and stop.
         if (!currentUser) {
+            setUserCreatedAnalyses([]);
             setIsLoadingAnalyses(false);
-            setUserCreatedAnalyses([]); // Clear analyses on logout
             return;
         }
 
-        console.log(`[AnalysisContext] Setting up listener for user: ${currentUser.uid}`);
-        
-        // Create a query that filters the 'analyses' collection by the current user's ID.
+        setIsLoadingAnalyses(true);
+
+        // This query is now SECURE. It fetches documents from the 'analyses' collection
+        // ONLY where the 'userId' field matches the logged-in user's UID.
+        // It also sorts them by creation date.
         const q = query(
-            collection(db, "analyses"), 
-            where("ownerId", "==", currentUser.uid), 
-            orderBy("createdAt", "desc")
+            collection(db, "analyses"),
+            where("userId", "==", currentUser.uid),
+            orderBy("createdAt", "desc") // Show newest analyses first
         );
 
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const analyses = [];
-            querySnapshot.forEach((doc) => {
-                analyses.push({ id: doc.id, ...doc.data() });
-            });
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const analyses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setUserCreatedAnalyses(analyses);
             setIsLoadingAnalyses(false);
-            setFetchAnalysesError(null);
         }, (error) => {
-            console.error("Error listening to user's analyses collection:", error);
-            setFetchAnalysesError("An error occurred while fetching your analyses.");
+            console.error("Error fetching user analyses:", error);
             setIsLoadingAnalyses(false);
+            // Optionally set an error state here
         });
 
-        // Cleanup: Unsubscribe from the listener when the component unmounts or the user changes.
-        return () => {
-            console.log("[AnalysisContext] Tearing down listener.");
-            unsubscribe();
-        };
-    }, [currentUser]); // The effect re-runs if the user logs in or out.
+        // Cleanup the listener when the component unmounts or the user logs out
+        return () => unsubscribe();
 
-    const contextValue = {
+    }, [currentUser]); // The effect re-runs whenever the user logs in or out.
+
+    // The value object is passed down to all children of this provider.
+    const value = {
         userCreatedAnalyses,
         isLoadingAnalyses,
-        fetchAnalysesError,
     };
 
     return (
-        <AnalysisContext.Provider value={contextValue}>
+        <AnalysisContext.Provider value={value}>
             {children}
         </AnalysisContext.Provider>
     );

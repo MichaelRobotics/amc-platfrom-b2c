@@ -91,20 +91,34 @@ Styl Interakcji: Bądź analityczny, wnikliwy i proaktywny.
         `;
 
         console.log(`[ANALYZE_TOPIC] Calling Gemini for initial analysis of topic: ${topicDisplayName}`);
-        const model = getGenerativeModel("gemini-1.5-flash-preview-0514"); // Using the model from original code
-        const result = await model.generateContent(initialPrompt, { responseMimeType: 'application/json' });
+        
+        // CORRECTED: Using the new model and proper configuration
+        const model = getGenerativeModel("gemini-2.5-flash-preview-05-20");
+        const result = await model.generateContent(initialPrompt, {
+            temperature: 0.7,
+            topP: 0.95,
+            topK: 40,
+            maxOutputTokens: 8192,
+            candidateCount: 1
+        });
 
-        // --- ORIGINAL GEMINI RESPONSE HANDLING (PRESERVED 100%) ---
-        if (!result || !result.response || !result.response.candidates || result.response.candidates.length === 0) {
-            if (result && result.response && result.response.promptFeedback && result.response.promptFeedback.blockReason) {
-                const reason = result.response.promptFeedback.blockReason;
-                throw new Error(`Content generation blocked due to: ${reason}`);
-            }
+        // --- CORRECTED GEMINI RESPONSE HANDLING ---
+        if (!result || !result.response) {
             throw new Error('Gemini API returned an invalid or empty response structure for topic analysis.');
         }
-        const responseText = result.response.candidates[0].content.parts[0].text;
+
+        // Get the response text using the correct method
+        const responseText = result.response.text();
         const cleanedResponseText = cleanPotentialJsonMarkdown(responseText);
-        const initialAnalysisResult = JSON.parse(cleanedResponseText);
+        
+        let initialAnalysisResult;
+        try {
+            initialAnalysisResult = JSON.parse(cleanedResponseText);
+        } catch (parseError) {
+            console.error('[ANALYZE_TOPIC] Failed to parse JSON response:', cleanedResponseText);
+            throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
+        }
+        
         console.log('[ANALYZE_TOPIC] Initial topic analysis parsed successfully.');
 
         // --- ORIGINAL VALIDATION OF RESULT STRUCTURE (PRESERVED 100%) ---
@@ -142,7 +156,6 @@ Styl Interakcji: Bądź analityczny, wnikliwy i proaktywny.
             read: false, // The frontend can use this to hide notifications that have been seen
         });
         console.log(`[ANALYZE_TOPIC] Notification created for analysis ${analysisId}.`);
-
 
         console.log(`[ANALYZE_TOPIC] Topic ${topicId} completed successfully.`);
         return null;

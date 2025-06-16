@@ -1,35 +1,46 @@
-// File: functions/analyses.js
-// Description: Refactored handler with full, original data mapping logic restored.
+/**
+ * @fileoverview Secure handler to fetch a list of analyses for the authenticated user.
+ * FULLY REFACTORED FOR SECURITY:
+ * - Converted from an insecure HTTP onRequest function to a secure onCall function.
+ * - Requires that the user be authenticated to call it.
+ * - The Firestore query now filters analyses to only those owned by the caller.
+ */
 
+const functions = require('firebase-functions');
 const { firestore } = require("./_lib/firebaseAdmin");
 
 /**
- * Handles GET requests to fetch all analysis documents and formats them for the frontend.
- * @param {object} req The HTTP request object.
- * @param {object} res The HTTP response object.
+ * Handles a secure, callable request to fetch the user's analysis documents.
+ * @param {object} data The data passed from the client (expected to be empty).
+ * @param {object} context The context of the call, containing auth information.
+ * @returns {Promise<object>} A promise that resolves with the user's list of analyses.
  */
-async function getAnalysesListHandler(req, res) {
-    if (req.method !== 'GET') {
-        res.setHeader('Allow', 'GET');
-        return res.status(405).json({ success: false, message: `Method ${req.method} Not Allowed` });
+async function getAnalysesListHandler(data, context) {
+    // 1. Authentication Check: Ensure the user is logged in.
+    if (!context.auth) {
+        throw new functions.https.HttpsError(
+            'unauthenticated',
+            'The function must be called while authenticated.'
+        );
     }
+    const uid = context.auth.uid;
 
     try {
-        console.log("Fetching list of all analyses with full data mapping...");
+        console.log(`[AUTH] User ${uid} is fetching their analyses list.`);
         
-        // Use the lazy-initialized firestore() function to get the instance
+        // 2. Secure Firestore Query: Use a 'where' clause to fetch only the user's documents.
         const analysesSnapshot = await firestore()
             .collection('analyses')
+            .where('userId', '==', uid) // This is the critical security filter
             .orderBy('createdAt', 'desc')
             .get();
 
         if (analysesSnapshot.empty) {
-            console.log('No analyses found.');
-            return res.status(200).json({ success: true, analyses: [] });
+            console.log(`[DATA] No analyses found for user ${uid}.`);
+            return { success: true, analyses: [] };
         }
 
-        // --- FULL DATA MAPPING LOGIC RESTORED ---
-        // Map the documents to the specific format the frontend expects.
+        // 3. Map the documents to the specific format the frontend expects.
         const analysesList = analysesSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -45,14 +56,14 @@ async function getAnalysesListHandler(req, res) {
                 dataNatureDescription: data.dataNatureDescription || null,
             };
         });
-        // --- END OF RESTORED LOGIC ---
 
-        console.log(`Successfully fetched and formatted ${analysesList.length} analyses.`);
-        return res.status(200).json({ success: true, analyses: analysesList });
+        console.log(`[DATA] Successfully fetched and formatted ${analysesList.length} analyses for user ${uid}.`);
+        return { success: true, analyses: analysesList };
 
     } catch (error) {
-        console.error("Error fetching analyses list:", error);
-        return res.status(500).json({ success: false, message: `Server error: ${error.message}` });
+        console.error(`Error fetching analyses list for user ${uid}:`, error);
+        // Throw a generic error to the client to avoid leaking implementation details.
+        throw new functions.https.HttpsError('internal', 'An internal server error occurred while fetching your analyses.');
     }
 }
 

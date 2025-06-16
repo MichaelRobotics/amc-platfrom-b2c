@@ -24,7 +24,6 @@ function formatChatHistoryForGemini(chatHistoryDocs) {
     });
 }
 
-
 /**
  * Handles a callable request for chatting about a topic with full context.
  * @param {object} data The data passed from the client: { analysisId, topicId, userMessageText }.
@@ -128,20 +127,22 @@ Styl Interakcji: Bądź analityczny, wnikliwy i bezpośrednio odpowiadaj na pyta
         let geminiResponsePayload;
         try {
             const model = getGenerativeModel("gemini-2.5-flash-preview-05-20");
-            const result = await model.generateContent(chatPrompt, { responseMimeType: 'application/json' });
+            const result = await model.generateContent(chatPrompt, {
+                temperature: 0.7,
+                topP: 0.95,
+                topK: 40,
+                maxOutputTokens: 8192,
+                candidateCount: 1
+            });
             
-            // --- START: CORRECTED ROBUST RESPONSE HANDLING ---
-            if (!result || !result.candidates || result.candidates.length === 0) {
-                 if (result && result.promptFeedback && result.promptFeedback.blockReason) {
-                    const reason = result.promptFeedback.blockReason;
-                    console.error(`[GEMINI] Chat content generation blocked. Reason: ${reason}`);
-                    throw new Error(`Chat content generation blocked due to: ${reason}`);
-                }
-                console.error('[GEMINI] Invalid or unexpected response structure for chat. No candidates found.');
+            // --- CORRECTED RESPONSE HANDLING ---
+            if (!result || !result.response) {
+                console.error('[GEMINI] Invalid or unexpected response structure for chat.');
                 throw new functions.https.HttpsError('internal', 'Gemini API returned an invalid or empty response structure for chat.');
             }
 
-            const responseText = result.candidates[0].content.parts[0].text;
+            // Get the response text using the correct method
+            const responseText = result.response.text();
             const cleanedResponseText = cleanPotentialJsonMarkdown(responseText);
 
             try {
@@ -149,9 +150,10 @@ Styl Interakcji: Bądź analityczny, wnikliwy i bezpośrednio odpowiadaj na pyta
                 console.log('[GEMINI] Chat response parsed successfully.');
             } catch (jsonParseError) {
                 console.error("[GEMINI] Failed to parse cleaned chat response as JSON.", jsonParseError);
-                throw new functions.https.HttpsError('internal', `The AI returned text that was not valid JSON for chat after cleaning. Raw text: "${cleanedResponseText}"`);
+                console.error("[GEMINI] Raw response text:", responseText);
+                console.error("[GEMINI] Cleaned response text:", cleanedResponseText);
+                throw new functions.https.HttpsError('internal', `The AI returned text that was not valid JSON for chat after cleaning. Parse error: ${jsonParseError.message}`);
             }
-            // --- END: CORRECTED ROBUST RESPONSE HANDLING ---
 
         } catch (geminiError) {
             console.error(`Gemini API error during chat for topic ${topicId}:`, geminiError);

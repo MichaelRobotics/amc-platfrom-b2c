@@ -69,7 +69,6 @@ function preprocessCsvData(csvString) {
 }
 // --- END: ORIGINAL HELPER FUNCTION ---
 
-
 /**
  * Background function handler triggered by Cloud Storage.
  * @param {object} object The Cloud Storage object metadata.
@@ -161,20 +160,34 @@ WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysł
         `;
 
         console.log('[PROCESS_CSV] Calling Gemini for data summary...');
-        const model = getGenerativeModel("gemini-1.5-flash-preview-0514"); // Using the model from original code
-        const resultSummary = await model.generateContent(dataSummaryPrompt, { responseMimeType: 'application/json' });
         
-        // --- ORIGINAL GEMINI RESPONSE HANDLING (PRESERVED 100%) ---
-        if (!resultSummary || !resultSummary.response || !resultSummary.response.candidates || resultSummary.response.candidates.length === 0) {
-            if (resultSummary && resultSummary.response && resultSummary.response.promptFeedback && resultSummary.response.promptFeedback.blockReason) {
-                const reason = resultSummary.response.promptFeedback.blockReason;
-                throw new Error(`Content generation blocked due to: ${reason}`);
-            }
+        // CORRECTED: Using the new model and proper configuration
+        const model = getGenerativeModel("gemini-2.5-flash-preview-05-20");
+        const resultSummary = await model.generateContent(dataSummaryPrompt, {
+            temperature: 0.3, // Lower temperature for more consistent structured output
+            topP: 0.95,
+            topK: 40,
+            maxOutputTokens: 8192,
+            candidateCount: 1
+        });
+        
+        // --- CORRECTED GEMINI RESPONSE HANDLING ---
+        if (!resultSummary || !resultSummary.response) {
             throw new Error('Gemini API returned an invalid or empty response structure for data summary.');
         }
-        const responseTextSummary = resultSummary.response.candidates[0].content.parts[0].text;
+
+        // Get the response text using the correct method
+        const responseTextSummary = resultSummary.response.text();
         const cleanedResponseTextSummary = cleanPotentialJsonMarkdown(responseTextSummary);
-        const dataSummaryForPrompts = JSON.parse(cleanedResponseTextSummary);
+        
+        let dataSummaryForPrompts;
+        try {
+            dataSummaryForPrompts = JSON.parse(cleanedResponseTextSummary);
+        } catch (parseError) {
+            console.error('[PROCESS_CSV] Failed to parse data summary JSON response:', cleanedResponseTextSummary);
+            throw new Error(`Failed to parse AI data summary response as JSON: ${parseError.message}`);
+        }
+        
         console.log('[PROCESS_CSV] Data summary parsed successfully.');
 
         // --- ORIGINAL GEMINI PROMPT 2 (PRESERVED 100%) ---
@@ -188,13 +201,20 @@ Opis powinien być zwięzły i informacyjny. Nie używaj formatowania HTML. Odpo
         `;
 
         console.log('[PROCESS_CSV] Calling Gemini for data nature description...');
-        const resultNature = await model.generateContent(dataNaturePrompt);
+        const resultNature = await model.generateContent(dataNaturePrompt, {
+            temperature: 0.7,
+            topP: 0.95,
+            topK: 40,
+            maxOutputTokens: 2048,
+            candidateCount: 1
+        });
         
-        // --- ORIGINAL GEMINI RESPONSE HANDLING (PRESERVED 100%) ---
-        if (!resultNature || !resultNature.response || !resultNature.response.candidates || resultNature.response.candidates.length === 0) {
+        // --- CORRECTED GEMINI RESPONSE HANDLING ---
+        if (!resultNature || !resultNature.response) {
             throw new Error('Gemini API returned an invalid response for data nature description.');
         }
-        const dataNatureDescriptionText = resultNature.response.candidates[0].content.parts[0].text;
+
+        const dataNatureDescriptionText = resultNature.response.text();
         console.log('[PROCESS_CSV] Data nature description generated.');
 
         // --- ORIGINAL CLEANED DATA STORAGE LOGIC (PRESERVED 100%) ---

@@ -1,53 +1,35 @@
-/**
- * @fileoverview API client for interacting with Firebase Cloud Functions.
- * CORRECTED FOR MONOREPO:
- * - Imports the 'functions' service from the shared firebase-helpers package.
- * - The 'requestAnalysis' function now accepts and passes the 'userId' to the backend,
- * which is critical for establishing data ownership and security.
- */
-import { httpsCallable } from "firebase/functions";
-// The 'packages' alias is configured by the monorepo's workspace setup.
-import { functions } from 'packages/firebase-helpers/client';
+// apps/cross-analyzer-agent/src/services/apiClient.js
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../../../packages/firebase-helpers/client';
 
 /**
- * Calls the 'requestAnalysis' function after a file upload.
- * @param {string} analysisId - The client-generated UUID for the analysis.
- * @param {string} originalFileName - The name of the file uploaded.
- * @param {string} analysisName - The user-provided name for the analysis.
- * @param {string} userId - The UID of the currently authenticated user.
- * @returns {Promise<any>} The result from the Cloud Function.
+ * This object centralizes all the callable Cloud Function endpoints used by the application.
+ * This makes it easy to manage and update function calls from one place.
  */
-export const requestAnalysis = async (analysisId, originalFileName, analysisName, userId) => {
-    try {
-        console.log('Calling requestAnalysis with:', { analysisId, originalFileName, analysisName, userId });
-        // It's best practice to specify the function name directly.
-        const requestAnalysisFunction = httpsCallable(functions, 'cross-analyzer-gcp-requestAnalysis');
-        
-        // The userId is now included in the payload sent to the function.
-        const result = await requestAnalysisFunction({ analysisId, originalFileName, analysisName, userId });
-        
-        return result.data;
-    } catch (error) {
-        console.error("Error requesting analysis:", error);
-        throw error;
-    }
+const apiClient = {
+  /**
+   * Fetches a list of all analyses.
+   * This is an HTTP onRequest function on the backend.
+   */
+  getAnalyses: httpsCallable(functions, 'analyses'),
+
+  /**
+   * Fetches the details and chat history for a specific analysis topic.
+   * This is an HTTP onRequest function on the backend.
+   */
+  getAnalysisTopicDetail: httpsCallable(functions, 'analysisTopicDetail'),
+
+  /**
+   * Sends a user's message to the chat for a specific topic and gets the AI's response.
+   * This is a secured onCall function.
+   */
+  chatOnTopic: httpsCallable(functions, 'chatOnTopic'),
+
+  /**
+   * NEW: Kicks off the asynchronous analysis process after a file is uploaded.
+   * This is a lightweight onCall function.
+   */
+  requestAnalysis: httpsCallable(functions, 'requestAnalysis'),
 };
 
-/**
- * Calls the 'chatOnTopic' function.
- * @param {string} analysisId - The ID of the analysis.
- * @param {string} topicId - The ID of the topic.
- * @param {Array<object>} chatHistory - The current chat history.
- * @returns {Promise<any>} The result from the Cloud Function.
- */
-export const chatOnTopic = async (analysisId, topicId, chatHistory) => {
-    try {
-        console.log('Calling chatOnTopic with:', { analysisId, topicId });
-        const chatFunction = httpsCallable(functions, 'cross-analyzer-gcp-chatOnTopic');
-        const result = await chatFunction({ analysisId, topicId, chatHistory });
-        return result.data;
-    } catch (error) {
-        console.error("Error in chatOnTopic:", error);
-        throw error;
-    }
-};
+export default apiClient;

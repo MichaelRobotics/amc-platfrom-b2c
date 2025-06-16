@@ -1,28 +1,30 @@
 module.exports = {
-  env: {
-    es6: true,
-    node: true,
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true,
+    "jest": true
   },
-  parserOptions: {
-    "ecmaVersion": 2018,
-  },
-  extends: [
+  "extends": [
     "eslint:recommended",
-    "google",
+    "plugin:react/recommended"
   ],
-  rules: {
-    "no-restricted-globals": ["error", "name", "length"],
-    "prefer-arrow-callback": "error",
-    "quotes": ["error", "double", {"allowTemplateLiterals": true}],
-  },
-  overrides: [
-    {
-      files: ["**/*.spec.*"],
-      env: {
-        mocha: true,
-      },
-      rules: {},
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
     },
+    "ecmaVersion": 12,
+    "sourceType": "module"
+  },
+  "plugins": [
+    "react"
   ],
-  globals: {},
+  "rules": {
+    "react/react-in-jsx-scope": "off"
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  }
 };

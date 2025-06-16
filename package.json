@@ -1,19 +1,21 @@
 {
-    "name": "amc-platform-b2c",
-    "private": true,
+    "name": "amc-platfrom-b2c-platform-test",
+    "version": "1.0.0",
     "workspaces": [
       "apps/*",
       "packages/*"
     ],
     "scripts": {
-      "dev": "npm run dev --workspace=platform-shell",
-      "dev:analyzer": "npm run dev --workspace=cross-analyzer-gcp",
-      "build": "npm run build --workspaces --if-present",
-      "deploy": "npm run build && firebase deploy",
-      "deploy:shell": "npm run build --workspace=platform-shell && firebase deploy --only hosting:platform-shell",
-      "deploy:analyzer": "npm run build --workspace=cross-analyzer-gcp && firebase deploy --only hosting:cross-analyzer-gcp,functions:cross-analyzer-gcp"
+      "build": "npm run build --workspace=platform-shell && npm run build --workspace=cross-analyzer-agent",
+      "predeploy": "rm -rf apps/platform-shell/build/analyzer && npm run build && mkdir -p apps/platform-shell/build/analyzer && cp -r apps/cross-analyzer-agent/build/* apps/platform-shell/build/analyzer",
+      "deploy": "npm run predeploy && firebase deploy",
+      "start": "npm run start --workspace=platform-shell",
+      "start:analyzer": "npm run start --workspace=cross-analyzer-agent",
+      "test": "echo \"Error: no test specified\" && exit 1"
     },
-    "devDependencies": {
-      "firebase-tools": "^13.11.0"
+    "dependencies": {
+      "firebase": "^9.17.2",
+      "firebase-admin": "^12.1.0"
     }
   }
+  

@@ -12,8 +12,8 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, updateDoc, doc } from 'firebase/firestore';
 
 // Import shared services and contexts
-import { db } from 'packages/firebase-helpers/client';
-import { useAuth } from 'platform-shell/src/contexts/AuthContext';
+import { db } from '../../firebase-helpers/client';
+import { useAuth } from '@amc-platfrom/shared-contexts';
 
 import Toast from '../UI/Toast';
 

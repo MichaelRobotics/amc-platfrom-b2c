@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { onAuthStateChanged } from "firebase/auth";
 // Import from the installed package directly using its name
-import { auth } from '../firebase-helpers/client';
+import { auth } from '@amc-platfrom/firebase-helpers';
 
 // Create the context object
 const AuthContext = createContext();

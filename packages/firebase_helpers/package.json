@@ -1,0 +1,7 @@
+{
+    "name": "@amc-platfrom/firebase-helpers",
+    "version": "1.0.0",
+    "private": true,
+    "main": "client.js"
+  }
+  

@@ -10,8 +10,8 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 // Import shared services and contexts from the monorepo structure
-import { firestore as db } from 'packages/firebase-helpers/client';
-import { useAuth } from 'platform-shell/src/contexts/AuthContext';
+import { firestore as db } from '../firebase-helpers/client';
+import { useAuth } from '@amc-platfrom/shared-contexts';
 
 const AnalysisContext = createContext();
 

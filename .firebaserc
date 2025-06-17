@@ -1,15 +1,15 @@
 {
   "projects": {
-    "default": "your-b2c-project-id"
+    "default": "amc-platform-b2c"
   },
   "targets": {
-    "your-b2c-project-id": {
+    "amc-platform-b2c": {
       "hosting": {
         "platform-shell": [
-          "your-b2c-project-id"
+          "amc-platform-b2c"
         ],
-        "cross-analyzer-gcp": [
-          "cross-analyzer-gcp"
+        "cross-analyzer-agent": [
+          "cross-analyzer-agent"
         ]
       }
     }

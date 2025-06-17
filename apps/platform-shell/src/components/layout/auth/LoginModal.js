@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { auth } from 'packages/firebase-helpers/client';
+import { auth } from '../../../firebase-helpers/client';
 import { signInWithEmailAndPassword } from "firebase/auth";
 
 const LoginModal = ({ onClose }) => {

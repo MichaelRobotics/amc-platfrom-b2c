@@ -1,21 +1,20 @@
 {
-    "name": "amc-platfrom-b2c-platform-test",
-    "version": "1.0.0",
-    "workspaces": [
-      "apps/*",
-      "packages/*"
-    ],
-    "scripts": {
-      "build": "npm run build --workspace=platform-shell && npm run build --workspace=cross-analyzer-agent",
-      "predeploy": "rm -rf apps/platform-shell/build/analyzer && npm run build && mkdir -p apps/platform-shell/build/analyzer && cp -r apps/cross-analyzer-agent/build/* apps/platform-shell/build/analyzer",
-      "deploy": "npm run predeploy && firebase deploy",
-      "start": "npm run start --workspace=platform-shell",
-      "start:analyzer": "npm run start --workspace=cross-analyzer-agent",
-      "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "dependencies": {
-      "firebase": "^9.17.2",
-      "firebase-admin": "^12.1.0"
-    }
+  "name": "amc-platfrom-b2c-platform-test",
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=platform-shell && npm run build --workspace=cross-analyzer-agent",
+    "predeploy": "rm -rf apps/platform-shell/build/analyzer && npm run build && mkdir -p apps/platform-shell/build/analyzer && cp -r apps/cross-analyzer-agent/build/* apps/platform-shell/build/analyzer",
+    "deploy": "npm run predeploy && firebase deploy",
+    "start": "npm run start --workspace=platform-shell",
+    "start:analyzer": "npm run start --workspace=cross-analyzer-agent",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "firebase": "^11.9.0",
+    "firebase-admin": "^12.1.0"
   }
-  
+}

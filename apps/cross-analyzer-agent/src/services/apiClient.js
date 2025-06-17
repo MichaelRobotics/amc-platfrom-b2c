@@ -1,5 +1,5 @@
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '../../../../packages/firebase-helpers/client';
+import { functions } from '../firebase-helpers/client';
 
 const apiClient = {
   /**

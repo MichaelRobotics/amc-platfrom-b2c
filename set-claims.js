@@ -8,16 +8,12 @@
  * where you have access to your service account credentials.
  *
  * @example
- * # To grant a user the 'agent-lean-ai' product subscription:
- * node scripts/set-claims.js user@example.com --productKey=agent-lean-ai
+ * # To grant a user access to the cross-analyzer-gcp product:
+ * node set-claims.js user@example.com --productKey=cross-analyzer-gcp
  *
  * @example
  * # To make a user an admin:
- * node scripts/set-claims.js admin@example.com --admin
- *
- * @example
- * # To grant both admin rights and a product key:
- * node scripts/set-claims.js superuser@example.com --admin --productKey=agent-lean-ai
+ * node set-claims.js admin@example.com --admin
  */
 
 // Import the Firebase Admin SDK
@@ -26,8 +22,7 @@ const path = require('path');
 
 // --- CONFIGURATION ---
 // IMPORTANT: Update this path to point to your Firebase service account key JSON file.
-// This file should be kept secure and NOT be committed to your public repository.
-const serviceAccountPath = path.resolve(__dirname, '../serviceAccountKey.json');
+const serviceAccountPath = path.resolve(__dirname, './serviceAccountKey.json');
 // ---------------------
 
 // Initialize the Firebase Admin App
@@ -51,7 +46,7 @@ const email = args[0];
 
 if (!email) {
   console.error('Error: Please provide a user email address as the first argument.');
-  console.log('Usage: node scripts/set-claims.js <user_email> [--admin] [--productKey=key]');
+  console.log('Usage: node set-claims.js <user_email> [--admin] [--productKey=key]');
   process.exit(1);
 }
 
@@ -67,9 +62,19 @@ args.slice(1).forEach(arg => {
   } else if (arg.startsWith('--productKey=')) {
     const productKey = arg.split('=')[1];
     if (productKey) {
-      claimsToSet.productKey = productKey;
+      
+      // --- FIX: This section is corrected ---
+      // Instead of setting a top-level productKey, we create the nested 'products' object
+      // that ProtectedRoute.js is looking for.
+      if (!claimsToSet.products) {
+        claimsToSet.products = {}; // Initialize the products object if it doesn't exist
+      }
+      claimsToSet.products[productKey] = true; // Set the specific product key to true
+      // This results in a claim like: { products: { 'cross-analyzer-gcp': true } }
+      // --- END FIX ---
+
       hasFlags = true;
-      console.log(`-> Setting productKey claim to "${productKey}".`);
+      console.log(`-> Setting product claim for "${productKey}".`);
     } else {
       console.warn('Warning: --productKey flag used without a value. Ignoring.');
     }
@@ -84,18 +89,24 @@ if (!hasFlags) {
 // Main function to set the claims
 async function setCustomClaims(email, claims) {
   try {
-    // 1. Get the user by their email address
     console.log(`\nFetching user with email: ${email}...`);
     const user = await admin.auth().getUserByEmail(email);
     console.log(`Successfully found user: ${user.uid}`);
 
-    // 2. Set the custom claims for that user
-    console.log(`Setting custom claims:`, claims);
-    await admin.auth().setCustomUserClaims(user.uid, claims);
-    console.log('\n✅ Success! Custom claims have been set on the user account.');
-    console.log('The user may need to log out and log back in for the changes to take effect immediately on the client.');
+    // We merge the new claims with any existing claims the user might have.
+    const existingClaims = user.customClaims || {};
+    const mergedClaims = { ...existingClaims, ...claims };
+    
+    // If we're setting a product key, we need to merge the products object carefully.
+    if(claims.products) {
+        mergedClaims.products = { ...(existingClaims.products || {}), ...claims.products };
+    }
 
-    // 3. Verify the claims were set (optional but good practice)
+    console.log(`Setting custom claims:`, mergedClaims);
+    await admin.auth().setCustomUserClaims(user.uid, mergedClaims);
+    console.log('\n✅ Success! Custom claims have been set on the user account.');
+    console.log('The user must log out and log back in for the changes to take effect.');
+
     const updatedUser = await admin.auth().getUser(user.uid);
     console.log('Verified claims:', updatedUser.customClaims);
 

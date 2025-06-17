@@ -3,8 +3,8 @@ import { onAuthStateChanged } from "firebase/auth";
 // Import from the installed package directly using its name
 import { auth } from '@amc-platfrom/firebase-helpers';
 
-// Create the context object
-const AuthContext = createContext();
+// Create and EXPORT the context object. This is the fix.
+export const AuthContext = createContext(undefined);
 
 /**
  * Custom hook to easily access the auth context in any component.

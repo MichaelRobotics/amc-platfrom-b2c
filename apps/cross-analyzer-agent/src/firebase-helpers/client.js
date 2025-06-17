@@ -8,12 +8,13 @@ import { getStorage } from "firebase/storage";   // Added
 // Your web app's Firebase configuration
 // It's recommended to use environment variables for this
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  apiKey: "AIzaSyDlzqRZiN6i3nFvpLBj642LLggQaRxW6E4",
+  authDomain: "amc-platform-b2c.firebaseapp.com",
+  projectId: "amc-platform-b2c",
+  storageBucket: "amc-platform-b2c.firebasestorage.app",
+  messagingSenderId: "703667374408",
+  appId: "1:703667374408:web:8e52a3b527dc8058da4b7d",
+  measurementId: "G-R1B3G3VBVS"
 };
 
 // Initialize Firebase

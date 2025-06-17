@@ -1,90 +1,51 @@
 {
-    "firestore": {
-      "rules": "firestore.rules",
-      "indexes": "firestore.indexes.json"
-    },
-    "functions": [
-      {
-        "source": "apps/cross-analyzer-agent/functions",
-        "codebase": "cross-analyzer-agent",
-        "ignore": [
-          "node_modules",
-          ".git",
-          "firebase-debug.log",
-          "firebase-debug.*.log"
-        ]
-      }
-    ],
-    "hosting": {
-      "target": "platform-shell",
-      "public": "apps/platform-shell/build",
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": [
+    {
+      "source": "apps/cross-analyzer-agent/functions",
+      "codebase": "cross-analyzer-agent",
       "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "rewrites": [
-        {
-          "source": "/api/requestAnalysis",
-          "function": {
-            "functionId": "requestAnalysis",
-            "region": "europe-west1"
-          }
-        },
-        {
-          "source": "/api/chatOnTopic",
-          "function": {
-            "functionId": "chatOnTopic",
-            "region": "europe-west1"
-          }
-        },
-        {
-          "source": "/api/getAnalysesList", 
-          "function": {
-            "functionId": "getAnalysesList",
-            "region": "europe-west1"
-          }
-        },
-        {
-          "source": "/api/getAnalysisTopicDetail", 
-          "function": {
-            "functionId": "getAnalysisTopicDetail",
-            "region": "europe-west1"
-          }
-        },
-        {
-          "source": "/app/analyzer/**", 
-          "destination": "/analyzer/index.html"
-        },
-        {
-          "source": "**",
-          "destination": "/index.html"
-        }
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
       ]
-    },
-    "storage": {
-      "rules": "storage.rules"
-    },
-    "emulators": {
-      "auth": {
-        "port": 9099
-      },
-      "functions": {
-        "port": 5001
-      },
-      "firestore": {
-        "port": 8080
-      },
-      "hosting": {
-        "port": 5000
-      },
-      "storage": {
-        "port": 9199
-      },
-      "ui": {
-        "enabled": true
-      },
-      "singleProjectMode": true
     }
+  ],
+  "hosting": {
+    "public": "apps/platform-shell/build",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "function": {
+          "functionId": "api",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "emulators": {
+    "auth": { "port": 9099 },
+    "functions": { "port": 5001 },
+    "firestore": { "port": 8080 },
+    "hosting": { "port": 5000 },
+    "storage": { "port": 9199 },
+    "ui": { "enabled": true },
+    "singleProjectMode": true
   }
-  
+}

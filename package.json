@@ -6,9 +6,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=platform-shell && npm run build --workspace=cross-analyzer-agent",
-    "predeploy": "rm -rf apps/platform-shell/build/analyzer && npm run build && mkdir -p apps/platform-shell/build/analyzer && cp -r apps/cross-analyzer-agent/build/* apps/platform-shell/build/analyzer",
-    "deploy": "npm run predeploy && firebase deploy",
+    "build": "npm run build --workspace=@amc-platfrom/shared-contexts && npm run build --workspaces --if-present",
+    "deploy": "npm run build && firebase deploy",
     "start": "npm run start --workspace=platform-shell",
     "start:analyzer": "npm run start --workspace=cross-analyzer-agent",
     "test": "echo \"Error: no test specified\" && exit 1"

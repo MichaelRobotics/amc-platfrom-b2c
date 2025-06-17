@@ -1,5 +1,7 @@
-{
-  "presets" [
-    "@babel/preset-react"
-  ]
-}
+// packages/shared-contexts/babel.config.js
+
+module.exports = {
+    presets: [
+      '@babel/preset-react'
+    ]
+  };

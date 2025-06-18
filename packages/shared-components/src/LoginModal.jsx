@@ -1,114 +1,133 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@amc-platfrom/shared-contexts';
-import { CloseIcon, SpinnerIcon } from './Icons';
+import React from 'react';
+import { CloseIcon } from './Icons'; // Assuming Icons.jsx exists
 
-export const LoginModal = ({ isOpen, onClose }) => {
-    const { login, mfaRequired, mfaHint, resolveMfa } = useAuth();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [mfaCode, setMfaCode] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [currentStep, setCurrentStep] = useState('login'); // 'login' or 'mfa'
+/**
+ * A modal component for handling user login and multi-factor authentication (MFA).
+ * @param {object} props - The component props.
+ * @param {boolean} props.isOpen - Controls if the modal is visible.
+ * @param {function} props.onClose - Function to call when the modal should be closed.
+ * @param {function} props.onLoginSubmit - Async function to handle email/password submission.
+ * @param {function} props.onMfaSubmit - Async function to handle the MFA code submission.
+ * @param {string} [props.mfaHint] - A hint for the MFA method, like a partial phone number.
+ * @param {string} [props.loginError] - Error message to display on the login form.
+ * @param {string} [props.mfaError] - Error message to display on the MFA form.
+ * @param {boolean} props.isLoading - Indicates if an auth process is in progress.
+ * @param {boolean} props.isMfa - Determines whether to show the login or MFA step.
+ */
+export const LoginModal = ({
+    isOpen,
+    onClose,
+    onLoginSubmit,
+    onMfaSubmit,
+    mfaHint,
+    loginError,
+    mfaError,
+    isLoading,
+    isMfa,
+}) => {
+    // When isOpen is false, we render nothing. This is key for CSS transitions.
+    if (!isOpen) {
+        return null;
+    }
 
-    useEffect(() => {
-        if (mfaRequired) {
-            setCurrentStep('mfa');
-            setIsLoading(false);
-            setError('');
-        }
-    }, [mfaRequired]);
-
-    useEffect(() => {
-        if (!isOpen) {
-            // Reset state when modal is closed
-            setTimeout(() => {
-                setCurrentStep('login');
-                setError('');
-                setEmail('');
-                setPassword('');
-                setMfaCode('');
-                setIsLoading(false);
-            }, 300); // Delay to allow closing animation
-        }
-    }, [isOpen]);
-
-    const handleLoginSubmit = async (e) => {
+    // Handles the login form submission.
+    const handleLogin = (e) => {
         e.preventDefault();
-        setIsLoading(true);
-        setError('');
-        const result = await login(email, password);
-        if (result.success) {
-            onClose();
-        } else if (!result.mfa) {
-            setError(result.error || 'Nieprawidłowy email lub hasło.');
-            setIsLoading(false);
-        }
-        // If MFA is required, useEffect will handle the step change
+        const formData = new FormData(e.target);
+        const email = formData.get('email');
+        const password = formData.get('password');
+        onLoginSubmit(email, password);
     };
 
-    const handleMfaSubmit = async (e) => {
+    // Handles the MFA form submission.
+    const handleMfa = (e) => {
         e.preventDefault();
-        setIsLoading(true);
-        setError('');
-        const result = await resolveMfa(mfaCode);
-        if (result.success) {
-            onClose();
-        } else {
-            setError(result.error || 'Wystąpił nieoczekiwany błąd.');
-            setIsLoading(false);
-        }
+        const formData = new FormData(e.target);
+        const mfaCode = formData.get('mfaCode');
+        onMfaSubmit(mfaCode);
     };
 
-    if (!isOpen) return null;
-
+    // The modal-overlay class provides the dark backdrop and flex centering.
+    // The .active class on it controls the fadeIn visibility.
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-            <div className="modal-card w-full max-w-md p-8 rounded-2xl relative">
+        <div className={`modal-overlay ${isOpen ? 'active' : ''}`}>
+            {/* The modal-card class handles the modal's appearance and entry animation. */}
+            <div className="modal-card w-full p-8 rounded-2xl relative" style={{maxWidth: '420px'}}>
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors">
                     <CloseIcon />
                 </button>
 
-                <div className={`modal-step ${currentStep === 'login' ? 'active' : 'hidden'}`}>
-                    <h2 className="text-2xl font-bold text-text-primary mb-2">Witaj z powrotem</h2>
-                    <p className="text-text-muted mb-6">Zaloguj się, aby uzyskać dostęp do platformy.</p>
-                    <form onSubmit={handleLoginSubmit}>
+                {/* Login Step with Animation */}
+                <div id="loginStep" className={`modal-step ${!isMfa ? 'active' : ''}`}>
+                    <h2 className="text-2xl font-bold text-text-primary mb-2 text-left">Witaj z powrotem</h2>
+                    <p className="text-text-muted mb-6 text-left">Zaloguj się, aby uzyskać dostęp do platformy.</p>
+                    <form onSubmit={handleLogin}>
                         <div>
-                            <label htmlFor="email" className="text-sm font-medium text-text-secondary block mb-2">Email</label>
-                            <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className="modal-input w-full text-sm rounded-lg" placeholder="jan.kowalski@firma.com" required />
+                            <label htmlFor="email-input" className="form-label">Email</label>
+                            <input
+                                type="email"
+                                id="email-input"
+                                name="email"
+                                className="modal-input"
+                                placeholder="jan.kowalski@firma.com"
+                                required
+                            />
                         </div>
                         <div className="mt-4">
-                            <label htmlFor="password"className="text-sm font-medium text-text-secondary block mb-2">Hasło</label>
-                            <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} className="modal-input w-full text-sm rounded-lg" required />
+                            <label htmlFor="password-input" className="form-label">Hasło</label>
+                            <input
+                                type="password"
+                                id="password-input"
+                                name="password"
+                                className="modal-input"
+                                required
+                            />
                         </div>
                         <div className="mt-6">
-                            <button type="submit" disabled={isLoading} className="modal-btn modal-btn-primary w-full inline-flex items-center justify-center gap-2 text-white font-medium rounded-lg text-sm py-3">
-                                {isLoading ? <SpinnerIcon /> : null}
-                                <span>{isLoading ? 'Logowanie...' : 'Zaloguj się'}</span>
+                            <button type="submit" className="modal-btn modal-btn-primary w-full" disabled={isLoading && !isMfa}>
+                                {isLoading && !isMfa ? (
+                                    <><span className="spinner-modal"></span><span>Logowanie...</span></>
+                                ) : (
+                                    <span>Zaloguj się</span>
+                                )}
                             </button>
                         </div>
                     </form>
-                    <div className="text-red-500 text-sm mt-4 text-center h-5">{error && currentStep === 'login' ? error : ''}</div>
+                    <div className="text-red-500 text-sm mt-4 text-center h-5">{loginError}</div>
                 </div>
 
-                <div className={`modal-step ${currentStep === 'mfa' ? 'active' : 'hidden'}`}>
-                    <h2 className="text-2xl font-bold text-text-primary mb-2">Weryfikacja dwuetapowa</h2>
-                    <p className="text-text-muted mb-6">Dla Twojego bezpieczeństwa, wpisz kod wysłany na Twój numer telefonu <strong className="text-text-primary">{mfaHint}</strong>.</p>
-                    <form onSubmit={handleMfaSubmit}>
+                {/* MFA Step with Animation */}
+                <div id="mfaStep" className={`modal-step ${isMfa ? 'active' : ''}`}>
+                    <h2 className="text-2xl font-bold text-text-primary mb-2 text-left">Weryfikacja dwuetapowa</h2>
+                    <p className="text-text-muted mb-6 text-left">
+                        Dla Twojego bezpieczeństwa, wpisz kod wysłany na Twój numer telefonu <strong className="text-text-primary">{mfaHint}</strong>.
+                    </p>
+                    <form onSubmit={handleMfa}>
                         <div>
-                            <label htmlFor="mfaCode" className="text-sm font-medium text-text-secondary block mb-2">Kod weryfikacyjny (6 cyfr)</label>
-                            <input type="text" id="mfaCode" value={mfaCode} onChange={(e) => setMfaCode(e.target.value)} inputMode="numeric" pattern="\d{6}" maxLength="6" className="modal-input w-full text-center text-xl tracking-[0.5em] rounded-lg" required />
+                            <label htmlFor="mfaCode-input" className="form-label">Kod weryfikacyjny (6 cyfr)</label>
+                            <input
+                                type="text"
+                                id="mfaCode-input"
+                                name="mfaCode"
+                                inputMode="numeric"
+                                pattern="\d{6}"
+                                maxLength="6"
+                                className="modal-input text-center text-xl tracking-[0.5em]"
+                                required
+                            />
                         </div>
                         <div className="mt-6">
-                             <button type="submit" disabled={isLoading} className="modal-btn modal-btn-primary w-full inline-flex items-center justify-center gap-2 text-white font-medium rounded-lg text-sm py-3">
-                                {isLoading ? <SpinnerIcon /> : null}
-                                <span>{isLoading ? 'Weryfikacja...' : 'Weryfikuj'}</span>
+                            <button type="submit" className="modal-btn modal-btn-primary w-full" disabled={isLoading && isMfa}>
+                                {isLoading && isMfa ? (
+                                    <><span className="spinner-modal"></span><span>Weryfikacja...</span></>
+                                ) : (
+                                    <span>Weryfikuj</span>
+                                )}
                             </button>
                         </div>
                     </form>
-                    <div className="text-red-500 text-sm mt-4 text-center h-5">{error && currentStep === 'mfa' ? error : ''}</div>
+                    <div className="text-red-500 text-sm mt-4 text-center h-5">{mfaError}</div>
                 </div>
-
             </div>
         </div>
     );

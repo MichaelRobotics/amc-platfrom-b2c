@@ -106,27 +106,29 @@
    }
    
    #mega-menu-panel {
-    position: fixed;
-    top: var(--top-bar-height);
+    /* Starts hidden above the screen */
+    position: fixed; /* <-- FIX: Add this line */
+    top: var(--top-bar-height); /* Position it right below the top bar */
     left: 0;
     right: 0;
-    z-index: 999;
-    background-color: rgba(17, 24, 39, 0.9);
+    z-index: 999; /* Ensure it's above content but below the top bar if needed */
+    background-color: rgba(17, 24, 39, 0.85);
     backdrop-filter: blur(16px) saturate(180%);
     -webkit-backdrop-filter: blur(16px) saturate(180%);
     border-bottom: 1px solid var(--border-color);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
     transform: translateY(-100%);
     opacity: 0;
     visibility: hidden;
+    /* Defines the animation properties */
     transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s;
-   }
-   
-   #mega-menu-panel.active {
+  }
+  
+  #mega-menu-panel.active {
+    /* Slides it down into view */
     transform: translateY(0);
     opacity: 1;
     visibility: visible;
-   }
+  }
    
    .mega-menu-content {
     display: none;

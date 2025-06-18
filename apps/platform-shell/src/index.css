@@ -65,6 +65,15 @@
  .nav-link-top.active-hover, .nav-link-top:hover { color: var(--text-primary); }
  #mega-menu-panel {
   /* Starts hidden above the screen */
+  position: fixed; /* <-- FIX: Add this line */
+  top: var(--top-bar-height); /* Position it right below the top bar */
+  left: 0;
+  right: 0;
+  z-index: 999; /* Ensure it's above content but below the top bar if needed */
+  background-color: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid var(--border-color);
   transform: translateY(-100%);
   opacity: 0;
   visibility: hidden;
@@ -212,3 +221,11 @@
  .action-card-icon { flex-shrink: 0; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background-color: var(--border-color); color: var(--primary-blue-light); margin-bottom: 0.5rem; }
  .action-card-title { color: var(--text-primary); font-weight: 600; font-size: 1.1rem; }
  .action-card-desc { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; }
+ .modal-step {
+  display: none;
+}
+
+.modal-step.active {
+  display: block;
+  animation: modalOpenAnimation 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+}

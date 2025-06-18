@@ -1,12 +1,10 @@
 const path = require('path');
 
 // Resolve the absolute path to the shared packages directory.
-// This is a cleaner, more scalable approach for a monorepo.
 const packagesPath = path.join(__dirname, '../../packages');
 
 module.exports = {
   // Add the style block to configure PostCSS for Tailwind CSS.
-  // This is essential for processing the utility classes used in the shared components.
   style: {
     postcssOptions: {
       plugins: [
@@ -49,4 +47,3 @@ module.exports = {
     },
   },
 };
-

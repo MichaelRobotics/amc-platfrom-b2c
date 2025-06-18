@@ -5,16 +5,18 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "babel src -d dist --copy-files",
-    "prepublishOnly": "npm run build"
+    "clean": "rm -rf dist"
   },
+
   "dependencies": {
     "@amc-platfrom/firebase-helpers": "1.0.0",
-    "firebase": "^9.17.2",
+    "firebase": "^11.9.0",
     "react": "^18.2.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.21.0",
     "@babel/core": "^7.21.3",
+    "@babel/preset-env": "^7.20.2",
     "@babel/preset-react": "^7.18.6"
   }
 }

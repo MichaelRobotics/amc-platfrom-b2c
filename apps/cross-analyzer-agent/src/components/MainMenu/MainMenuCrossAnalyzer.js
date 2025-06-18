@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Import shared services and contexts from the monorepo structure
 import { storage } from '../../firebase-helpers/client';
-import { AuthContext } from '@amc-platfrom/shared-contexts';
+import { useAuth } from '@amc-platfrom/shared-contexts';
 
 // Import local components and services
 import NewStyledButton from '../UI/NewStyledButton';
@@ -40,7 +40,7 @@ const MainMenuCrossAnalyzer = () => {
     const [initialModalAnalysisName, setInitialModalAnalysisName] = useState('');
     
     const csvFileInputRef = useRef(null);
-    const { currentUser } = useContext(AuthContext);
+    const { currentUser } = useAuth()
     const navigate = useNavigate(); // Using navigate hook from react-router-dom
     const { showToast } = useToast();
 

@@ -1,19 +1,16 @@
 {
   "name": "amc-platfrom-b2c-platform-test",
   "version": "1.0.0",
+  "private": true,
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=@amc-platfrom/shared-contexts && npm run build --workspaces --if-present",
-    "deploy": "npm run build && firebase deploy",
     "start": "npm run start --workspace=platform-shell",
     "start:analyzer": "npm run start --workspace=cross-analyzer-agent",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "dependencies": {
-    "firebase": "^11.9.0",
-    "firebase-admin": "^12.1.0"
+    "build": "npm run build --workspace=@amc-platfrom/shared-contexts && npm run build --workspace=@amc-platfrom/shared-components && npm run build --workspace=platform-shell && npm run build --workspace=cross-analyzer-agent",
+    "deploy": "npm run build && firebase deploy",
+    "test": "npm test --workspaces --if-present"
   }
 }

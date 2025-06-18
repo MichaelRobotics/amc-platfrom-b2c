@@ -15,7 +15,7 @@ import { AnalysisProvider } from '../../contexts/AnalysisContext';
 const Dashboard = () => {
     const { analysisId } = useParams();
     const navigate = useNavigate();
-    const { currentUser } = useAuth(); // FIX: Using useAuth() instead of useContext(AuthContext).
+    const { currentUser } = useAuth(); 
     const { showToast } = useToast();
 
     // All original state management is preserved.

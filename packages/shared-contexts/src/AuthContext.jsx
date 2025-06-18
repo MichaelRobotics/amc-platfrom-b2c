@@ -1,72 +1,102 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { onAuthStateChanged } from "firebase/auth";
-// Import from the installed package directly using its name
-import { auth } from '@amc-platfrom/firebase-helpers';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, PhoneAuthProvider } from 'firebase/auth';
+import { auth } from '@amc-platfrom/firebase-helpers'; // Assuming firebase-helpers exports initialized auth
 
-// Create and EXPORT the context object. This is the fix.
-export const AuthContext = createContext(undefined);
+const AuthContext = createContext(null);
 
-/**
- * Custom hook to easily access the auth context in any component.
- * e.g., const { currentUser } = useAuth();
- */
-export const useAuth = () => {
-    return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);
 
-/**
- * The AuthProvider component wraps the application and provides auth state.
- * It listens to real-time authentication changes from Firebase.
- * @param {{ children: React.ReactNode }} props
- */
 export const AuthProvider = ({ children }) => {
-    const [currentUser, setCurrentUser] = useState(null);
-    const [idTokenResult, setIdTokenResult] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [claims, setClaims] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  // New state for MFA flow
+  const [mfaResolver, setMfaResolver] = useState(null);
+  const [mfaHint, setMfaHint] = useState(null);
+  const [mfaRequired, setMfaRequired] = useState(false);
 
-    useEffect(() => {
-        // onAuthStateChanged is the core Firebase listener for auth state.
-        // It returns an unsubscribe function to prevent memory leaks.
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            setCurrentUser(user);
-            
-            if (user) {
-                try {
-                    // When a user is found, force a refresh of their ID token.
-                    // This is CRITICAL to get the latest custom claims (like `admin` or product ownership)
-                    // that may have been set by a backend function.
-                    const tokenResult = await user.getIdTokenResult(true);
-                    setIdTokenResult(tokenResult);
-                } catch (error) {
-                    console.error("Error fetching user token with claims:", error);
-                    // If fetching the token fails, treat the user as logged out.
-                    setIdTokenResult(null);
-                }
-            } else {
-                // No user, clear the token result.
-                setIdTokenResult(null);
-            }
-            
-            // Set loading to false once the initial auth check is complete.
-            setLoading(false);
-        });
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const idTokenResult = await user.getIdTokenResult(true);
+          setUser(user);
+          setClaims(idTokenResult.claims);
+        } catch (error) {
+          console.error("Error fetching user claims:", error);
+          await signOut(auth); // Sign out on token error
+          setUser(null);
+          setClaims(null);
+        }
+      } else {
+        setUser(null);
+        setClaims(null);
+      }
+      setLoading(false);
+      setMfaRequired(false); // Reset MFA state on auth change
+      setMfaResolver(null);
+      setMfaHint(null);
+    });
 
-        // Cleanup: Unsubscribe from the listener when the component unmounts.
-        return unsubscribe;
-    }, []);
+    return () => unsubscribe();
+  }, []);
 
-    // The value object is passed down to all children of this provider.
-    const value = {
-        currentUser,
-        idTokenResult,
-        loading,
-    };
+  const login = useCallback(async (email, password) => {
+    // Reset previous MFA state before new login attempt
+    setMfaRequired(false);
+    setMfaResolver(null);
+    setMfaHint(null);
 
-    // We don't render children until the initial auth check is done.
-    // This prevents a "flash" of a logged-out state for a logged-in user.
-    return (
-        <AuthContext.Provider value={value}>
-            {!loading && children}
-        </AuthContext.Provider>
-    );
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged will handle setting user and claims
+      return { success: true };
+    } catch (error) {
+      if (error.code === 'auth/multi-factor-required') {
+        setMfaRequired(true);
+        setMfaResolver(error.resolver);
+        setMfaHint(error.resolver.hints[0].phoneNumber);
+        return { success: false, mfa: true, error: null };
+      }
+      console.error("Login error:", error.message);
+      return { success: false, mfa: false, error: error.message };
+    }
+  }, []);
+
+  const resolveMfa = useCallback(async (mfaCode) => {
+    if (!mfaResolver) {
+      return { success: false, error: "MFA resolver not available." };
+    }
+    try {
+      const phoneAuthCredential = PhoneAuthProvider.credential(mfaResolver.session, mfaCode);
+      await mfaResolver.resolveSignIn(phoneAuthCredential);
+      // onAuthStateChanged will now fire with the logged-in user
+      return { success: true };
+    } catch (error) {
+      console.error("MFA resolution error:", error);
+      return { success: false, error: "Nieprawidłowy kod weryfikacyjny." };
+    }
+  }, [mfaResolver]);
+
+  const logout = useCallback(async () => {
+    await signOut(auth);
+  }, []);
+
+  const value = {
+    user,
+    claims,
+    loading,
+    login,
+    logout,
+    mfaRequired,
+    mfaHint,
+    resolveMfa,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

@@ -15,27 +15,45 @@
       ]
     }
   ],
-  "hosting": {
-    "public": "apps/platform-shell/build",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/api/**",
-        "function": {
-          "functionId": "api",
-          "region": "europe-west1"
+  "hosting": [ 
+    {
+      "target": "platform-shell", 
+      "public": "apps/platform-shell/build",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/api/**",
+          "function": {
+            "functionId": "api",
+            "region": "europe-west1"
+          }
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
         }
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  },
+      ]
+    },
+    {
+      "target": "cross-analyzer-agent", 
+      "public": "apps/cross-analyzer-agent/build", 
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+         {
+           "source": "**",
+           "destination": "/index.html"
+         }
+      ]
+    }
+  ],
   "storage": {
     "rules": "storage.rules"
   },

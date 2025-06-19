@@ -3,23 +3,175 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.UserIcon = exports.SignOutIcon = exports.SignInIcon = exports.LeanAIAgentIcon = exports.DigitalTwinXIcon = exports.DigitalTwinAIIcon = exports.ContactIcon = exports.CloseIcon = exports.BehavioralTrainingIcon = exports.AdminIcon = exports.AboutUsIcon = void 0;
+exports.UserIcon = exports.SkillsTrainingIcon = exports.SignOutIcon = exports.SignInIcon = exports.PartnersIcon = exports.LeanAISuperAgentIcon = exports.LeanAIAgentIcon = exports.DigitalTwinXIcon = exports.DigitalTwinSuperIcon = exports.DigitalTwinAIIcon = exports.ContactIcon = exports.BehavioralTrainingIcon = exports.AdminIcon = exports.AboutUsIcon = void 0;
 var _react = _interopRequireDefault(require("react"));
 var _jsxRuntime = require("react/jsx-runtime");
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
+// Icons from your new standalone file
+var DigitalTwinXIcon = exports.DigitalTwinXIcon = function DigitalTwinXIcon() {
+  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
+    xmlns: "http://www.w3.org/2000/svg",
+    fill: "none",
+    viewBox: "0 0 24 24",
+    strokeWidth: "1.0",
+    stroke: "currentColor",
+    className: "w-6 h-6",
+    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      d: "M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"
+    })
+  });
+};
+var DigitalTwinAIIcon = exports.DigitalTwinAIIcon = function DigitalTwinAIIcon() {
+  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
+    xmlns: "http://www.w3.org/2000/svg",
+    fill: "none",
+    viewBox: "0 0 24 24",
+    strokeWidth: "1.0",
+    stroke: "currentColor",
+    className: "w-6 h-6",
+    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      d: "M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.472-2.472a3.375 3.375 0 00-4.773-4.773L6.75 10.5M11.42 15.17L6.75 10.5m4.67 4.67L6.75 10.5"
+    })
+  });
+};
+var DigitalTwinSuperIcon = exports.DigitalTwinSuperIcon = function DigitalTwinSuperIcon() {
+  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
+    xmlns: "http://www.w3.org/2000/svg",
+    fill: "none",
+    viewBox: "0 0 24 24",
+    strokeWidth: "1.0",
+    stroke: "currentColor",
+    className: "w-6 h-6",
+    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      d: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 012.829-5.195l2.846-.813A4.5 4.5 0 0115.904 9.813l2.846.813a4.5 4.5 0 015.195 2.829l.813 2.846A4.5 4.5 0 0118.75 15l-2.846.813a4.5 4.5 0 01-5.195 2.829z"
+    })
+  });
+};
+var LeanAIAgentIcon = exports.LeanAIAgentIcon = function LeanAIAgentIcon() {
+  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
+    xmlns: "http://www.w3.org/2000/svg",
+    fill: "none",
+    viewBox: "0 0 24 24",
+    strokeWidth: "1.0",
+    stroke: "currentColor",
+    className: "w-6 h-6",
+    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      d: "M15.042 21.672L13.682 16.072M21.002 7.222L11.802 14.122M11.802 14.122L4.5 21.002M11.802 14.122L21.3 16.5 13.682 16.072M4.5 21.002L7.222 3.002l9.08 9.08-2.472 2.472"
+    })
+  });
+};
+var LeanAISuperAgentIcon = exports.LeanAISuperAgentIcon = function LeanAISuperAgentIcon() {
+  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
+    xmlns: "http://www.w3.org/2000/svg",
+    fill: "none",
+    viewBox: "0 0 24 24",
+    strokeWidth: "1.0",
+    stroke: "currentColor",
+    className: "w-6 h-6",
+    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      d: "M12 9.75L14.25 12m0 0l2.25 2.25M14.25 12l2.25-2.25M14.25 12L12 14.25m-2.58 4.92l-6.375-6.375a1.125 1.125 0 010-1.59L9.42 4.83c.211-.211.498-.33.796-.33H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25h-4.5a1.125 1.125 0 01-1.06-.619l-2.475-4.576"
+    })
+  });
+};
+var BehavioralTrainingIcon = exports.BehavioralTrainingIcon = function BehavioralTrainingIcon() {
+  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
+    xmlns: "http://www.w3.org/2000/svg",
+    fill: "none",
+    viewBox: "0 0 24 24",
+    strokeWidth: "1.0",
+    stroke: "currentColor",
+    className: "w-6 h-6",
+    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      d: "M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.289 2.72a9.094 9.094 0 013.741-.479 3 3 0 01-4.682-2.72m-7.289 2.72a3 3 0 002.72 4.682 9.095 9.095 0 003.741-.478m-9.82 0a9.093 9.093 0 003.741-.477m-1.46-3.263a3 3 0 012.72 4.682 9.095 9.095 0 01-3.741-.478m1.46 3.263l.264-1.152m-1.46-3.263a3 3 0 00-2.72 4.682 9.095 9.095 0 003.741-.478m-1.46 3.263l-.264-1.152m6.182-5.002a9.094 9.094 0 01-3.741.479 3 3 0 01-4.682-2.72m7.289-2.72a9.094 9.094 0 00-3.741.479 3 3 0 00-4.682-2.72m7.289-2.72a3 3 0 01-2.72-4.682 9.095 9.095 0 013.741.478m-1.46-3.263l-.264 1.152m1.46-3.263a3 3 0 012.72-4.682 9.095 9.095 0 01-3.741.478m-1.46-3.263l.264 1.152m-6.182 5.002a9.094 9.094 0 003.741-.479 3 3 0 004.682-2.72m-7.289-2.72a3 3 0 00-2.72-4.682 9.095 9.095 0 00-3.741.478m9.82 0a9.093 9.093 0 01-3.741.477m1.46-3.263a3 3 0 002.72-4.682 9.095 9.095 0 00-3.741.478m1.46-3.263l-.264 1.152"
+    })
+  });
+};
+var SkillsTrainingIcon = exports.SkillsTrainingIcon = function SkillsTrainingIcon() {
+  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
+    xmlns: "http://www.w3.org/2000/svg",
+    fill: "none",
+    viewBox: "0 0 24 24",
+    strokeWidth: "1.0",
+    stroke: "currentColor",
+    className: "w-6 h-6",
+    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      d: "M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+    })
+  });
+};
+var PartnersIcon = exports.PartnersIcon = function PartnersIcon() {
+  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
+    xmlns: "http://www.w3.org/2000/svg",
+    fill: "none",
+    viewBox: "0 0 24 24",
+    strokeWidth: "1.0",
+    stroke: "currentColor",
+    className: "w-6 h-6",
+    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      d: "M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6v2.25a2.25 2.25 0 002.25 2.25zm13.5 0h-2.25a2.25 2.25 0 00-2.25 2.25v2.25a2.25 2.25 0 002.25 2.25H19.5a2.25 2.25 0 002.25-2.25v-2.25a2.25 2.25 0 00-2.25-2.25z"
+    })
+  });
+};
+var AboutUsIcon = exports.AboutUsIcon = function AboutUsIcon() {
+  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
+    xmlns: "http://www.w3.org/2000/svg",
+    fill: "none",
+    viewBox: "0 0 24 24",
+    strokeWidth: "1.0",
+    stroke: "currentColor",
+    className: "w-6 h-6",
+    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      d: "M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"
+    })
+  });
+};
+var ContactIcon = exports.ContactIcon = function ContactIcon() {
+  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
+    xmlns: "http://www.w3.org/2000/svg",
+    fill: "none",
+    viewBox: "0 0 24 24",
+    strokeWidth: "1.0",
+    stroke: "currentColor",
+    className: "w-6 h-6",
+    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      d: "M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+    })
+  });
+};
+
+// You can also keep your user/admin icons here
 var SignInIcon = exports.SignInIcon = function SignInIcon() {
   return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
     xmlns: "http://www.w3.org/2000/svg",
     fill: "none",
     viewBox: "0 0 24 24",
-    strokeWidth: "2",
+    strokeWidth: "1.0",
     stroke: "currentColor",
-    width: "16",
-    height: "16",
+    className: "w-5 h-5",
     children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
       strokeLinecap: "round",
       strokeLinejoin: "round",
-      d: "M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H9"
+      d: "M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m-3 0l3-3m0 0l-3 3m3-3H9"
     })
   });
 };
@@ -33,7 +185,7 @@ var SignOutIcon = exports.SignOutIcon = function SignOutIcon() {
     children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
       strokeLinecap: "round",
       strokeLinejoin: "round",
-      d: "M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l-3-3m0 0l-3 3m3-3H9"
+      d: "M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l-3-3m0 0l-3-3m3-3H9"
     })
   });
 };
@@ -60,111 +212,6 @@ var AdminIcon = exports.AdminIcon = function AdminIcon() {
       fillRule: "evenodd",
       d: "M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 10-7.5 0v3h7.5z",
       clipRule: "evenodd"
-    })
-  });
-};
-var CloseIcon = exports.CloseIcon = function CloseIcon() {
-  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
-    className: "w-6 h-6",
-    fill: "none",
-    stroke: "currentColor",
-    viewBox: "0 0 24 24",
-    xmlns: "http://www.w3.org/2000/svg",
-    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      strokeWidth: "2",
-      d: "M6 18L18 6M6 6l12 12"
-    })
-  });
-};
-var DigitalTwinXIcon = exports.DigitalTwinXIcon = function DigitalTwinXIcon() {
-  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
-    xmlns: "http://www.w3.org/2000/svg",
-    fill: "none",
-    viewBox: "0 0 24 24",
-    strokeWidth: "1.5",
-    stroke: "currentColor",
-    className: "w-6 h-6",
-    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      d: "M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"
-    })
-  });
-};
-var DigitalTwinAIIcon = exports.DigitalTwinAIIcon = function DigitalTwinAIIcon() {
-  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
-    xmlns: "http://www.w3.org/2000/svg",
-    fill: "none",
-    viewBox: "0 0 24 24",
-    strokeWidth: "1.5",
-    stroke: "currentColor",
-    className: "w-6 h-6",
-    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      d: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.572L16.5 21.75l-.398-1.178a3.375 3.375 0 00-2.3-2.3L12.75 18l1.178-.398a3.375 3.375 0 002.3-2.3L16.5 14.25l.398 1.178a3.375 3.375 0 002.3 2.3l1.178.398-1.178.398a3.375 3.375 0 00-2.3 2.3z"
-    })
-  });
-};
-var LeanAIAgentIcon = exports.LeanAIAgentIcon = function LeanAIAgentIcon() {
-  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
-    xmlns: "http://www.w3.org/2000/svg",
-    fill: "none",
-    viewBox: "0 0 24 24",
-    strokeWidth: "1.5",
-    stroke: "currentColor",
-    className: "w-6 h-6",
-    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      d: "M12 18.375a9.375 9.375 0 100-18.75 9.375 9.375 0 000 18.75zm-5.402-9.264a.75.75 0 10-1.196-.032 11.247 11.247 0 002.13 4.575.75.75 0 101.196.032 9.747 9.747 0 01-2.13-4.575zm3.194.032a.75.75 0 10-1.196-.032 9.747 9.747 0 00-2.13 4.575.75.75 0 101.196.032 11.247 11.247 0 012.13-4.575zM15.402 9.111a.75.75 0 10-1.196.033 9.747 9.747 0 00-2.13 4.574.75.75 0 101.196.033 11.247 11.247 0 012.13-4.574z"
-    })
-  });
-};
-var BehavioralTrainingIcon = exports.BehavioralTrainingIcon = function BehavioralTrainingIcon() {
-  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
-    xmlns: "http://www.w3.org/2000/svg",
-    fill: "none",
-    viewBox: "0 0 24 24",
-    strokeWidth: "1.5",
-    stroke: "currentColor",
-    className: "w-6 h-6",
-    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      d: "M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.282A24.038 24.038 0 0112 15.75c-2.672 0-5.192-.7-7.22-1.942m-7.44-2.192a23.953 23.953 0 010-4.136 2.25 2.25 0 012.25-2.25h15.75a2.25 2.25 0 012.25 2.25 23.953 23.953 0 010 4.136m-18 0a2.25 2.25 0 002.25 2.25h15.75a2.25 2.25 0 002.25-2.25m-18 0v-4.136c0-1.243.332-2.404.92-3.428m16.16 7.564a23.952 23.952 0 01-16.16 0m16.16 0c.588-1.024.92-2.185.92-3.428V9.864"
-    })
-  });
-};
-var AboutUsIcon = exports.AboutUsIcon = function AboutUsIcon() {
-  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
-    xmlns: "http://www.w3.org/2000/svg",
-    fill: "none",
-    viewBox: "0 0 24 24",
-    strokeWidth: "1.5",
-    stroke: "currentColor",
-    className: "w-6 h-6",
-    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      d: "M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z"
-    })
-  });
-};
-var ContactIcon = exports.ContactIcon = function ContactIcon() {
-  return /*#__PURE__*/(0, _jsxRuntime.jsx)("svg", {
-    xmlns: "http://www.w3.org/2000/svg",
-    fill: "none",
-    viewBox: "0 0 24 24",
-    strokeWidth: "1.5",
-    stroke: "currentColor",
-    className: "w-6 h-6",
-    children: /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      d: "M20.25 3.75v16.5M3.75 3.75v16.5M5.25 12H18.75"
     })
   });
 };

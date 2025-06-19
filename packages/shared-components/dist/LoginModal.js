@@ -8,21 +8,8 @@ var _react = _interopRequireDefault(require("react"));
 var _Icons = require("./Icons");
 var _jsxRuntime = require("react/jsx-runtime");
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
-// Assuming Icons.jsx exists
+// packages/shared-components/src/LoginModal.jsx
 
-/**
- * A modal component for handling user login and multi-factor authentication (MFA).
- * @param {object} props - The component props.
- * @param {boolean} props.isOpen - Controls if the modal is visible.
- * @param {function} props.onClose - Function to call when the modal should be closed.
- * @param {function} props.onLoginSubmit - Async function to handle email/password submission.
- * @param {function} props.onMfaSubmit - Async function to handle the MFA code submission.
- * @param {string} [props.mfaHint] - A hint for the MFA method, like a partial phone number.
- * @param {string} [props.loginError] - Error message to display on the login form.
- * @param {string} [props.mfaError] - Error message to display on the MFA form.
- * @param {boolean} props.isLoading - Indicates if an auth process is in progress.
- * @param {boolean} props.isMfa - Determines whether to show the login or MFA step.
- */
 var LoginModal = exports.LoginModal = function LoginModal(_ref) {
   var isOpen = _ref.isOpen,
     onClose = _ref.onClose,
@@ -33,12 +20,9 @@ var LoginModal = exports.LoginModal = function LoginModal(_ref) {
     mfaError = _ref.mfaError,
     isLoading = _ref.isLoading,
     isMfa = _ref.isMfa;
-  // When isOpen is false, we render nothing. This is key for CSS transitions.
   if (!isOpen) {
     return null;
   }
-
-  // Handles the login form submission.
   var handleLogin = function handleLogin(e) {
     e.preventDefault();
     var formData = new FormData(e.target);
@@ -46,67 +30,70 @@ var LoginModal = exports.LoginModal = function LoginModal(_ref) {
     var password = formData.get('password');
     onLoginSubmit(email, password);
   };
-
-  // Handles the MFA form submission.
   var handleMfa = function handleMfa(e) {
     e.preventDefault();
     var formData = new FormData(e.target);
     var mfaCode = formData.get('mfaCode');
     onMfaSubmit(mfaCode);
   };
-
-  // The modal-overlay class provides the dark backdrop and flex centering.
-  // The .active class on it controls the fadeIn visibility.
   return /*#__PURE__*/(0, _jsxRuntime.jsx)("div", {
     className: "modal-overlay ".concat(isOpen ? 'active' : ''),
     children: /*#__PURE__*/(0, _jsxRuntime.jsxs)("div", {
-      className: "modal-card w-full p-8 rounded-2xl relative",
+      className: "modal-card relative",
       style: {
         maxWidth: '420px'
       },
-      children: [/*#__PURE__*/(0, _jsxRuntime.jsx)("button", {
-        onClick: onClose,
-        className: "absolute top-4 right-4 text-gray-500 hover:text-white transition-colors",
-        children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_Icons.CloseIcon, {})
-      }), /*#__PURE__*/(0, _jsxRuntime.jsxs)("div", {
+      children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)("div", {
         id: "loginStep",
         className: "modal-step ".concat(!isMfa ? 'active' : ''),
-        children: [/*#__PURE__*/(0, _jsxRuntime.jsx)("h2", {
-          className: "text-2xl font-bold text-text-primary mb-2 text-left",
-          children: "Witaj z powrotem"
-        }), /*#__PURE__*/(0, _jsxRuntime.jsx)("p", {
-          className: "text-text-muted mb-6 text-left",
-          children: "Zaloguj si\u0119, aby uzyska\u0107 dost\u0119p do platformy."
+        children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)("div", {
+          className: "modal-header",
+          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)("h2", {
+            className: "modal-title",
+            children: "Witaj z powrotem"
+          }), /*#__PURE__*/(0, _jsxRuntime.jsx)("button", {
+            onClick: onClose,
+            className: "modal-close-btn",
+            children: "\xD7"
+          })]
         }), /*#__PURE__*/(0, _jsxRuntime.jsxs)("form", {
           onSubmit: handleLogin,
           children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)("div", {
-            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)("label", {
-              htmlFor: "email-input",
-              className: "form-label",
-              children: "Email"
-            }), /*#__PURE__*/(0, _jsxRuntime.jsx)("input", {
-              type: "email",
-              id: "email-input",
-              name: "email",
-              className: "modal-input",
-              placeholder: "jan.kowalski@firma.com",
-              required: true
-            })]
-          }), /*#__PURE__*/(0, _jsxRuntime.jsxs)("div", {
-            className: "mt-4",
-            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)("label", {
-              htmlFor: "password-input",
-              className: "form-label",
-              children: "Has\u0142o"
-            }), /*#__PURE__*/(0, _jsxRuntime.jsx)("input", {
-              type: "password",
-              id: "password-input",
-              name: "password",
-              className: "modal-input",
-              required: true
+            className: "modal-body",
+            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)("p", {
+              className: "mb-6",
+              children: "Zaloguj si\u0119, aby uzyska\u0107 dost\u0119p do platformy."
+            }), /*#__PURE__*/(0, _jsxRuntime.jsxs)("div", {
+              children: [/*#__PURE__*/(0, _jsxRuntime.jsx)("label", {
+                htmlFor: "email-input",
+                className: "form-label",
+                children: "Email"
+              }), /*#__PURE__*/(0, _jsxRuntime.jsx)("input", {
+                type: "email",
+                id: "email-input",
+                name: "email",
+                className: "modal-input",
+                placeholder: "jan.kowalski@firma.com",
+                required: true
+              })]
+            }), /*#__PURE__*/(0, _jsxRuntime.jsxs)("div", {
+              children: [" ", /*#__PURE__*/(0, _jsxRuntime.jsx)("label", {
+                htmlFor: "password-input",
+                className: "form-label",
+                children: "Has\u0142o"
+              }), /*#__PURE__*/(0, _jsxRuntime.jsx)("input", {
+                type: "password",
+                id: "password-input",
+                name: "password",
+                className: "modal-input",
+                required: true
+              })]
+            }), /*#__PURE__*/(0, _jsxRuntime.jsx)("div", {
+              className: "text-red-500 text-sm text-center h-5",
+              children: loginError
             })]
           }), /*#__PURE__*/(0, _jsxRuntime.jsx)("div", {
-            className: "mt-6",
+            className: "modal-footer",
             children: /*#__PURE__*/(0, _jsxRuntime.jsx)("button", {
               type: "submit",
               className: "modal-btn modal-btn-primary w-full",
@@ -122,41 +109,51 @@ var LoginModal = exports.LoginModal = function LoginModal(_ref) {
               })
             })
           })]
-        }), /*#__PURE__*/(0, _jsxRuntime.jsx)("div", {
-          className: "text-red-500 text-sm mt-4 text-center h-5",
-          children: loginError
         })]
       }), /*#__PURE__*/(0, _jsxRuntime.jsxs)("div", {
         id: "mfaStep",
         className: "modal-step ".concat(isMfa ? 'active' : ''),
-        children: [/*#__PURE__*/(0, _jsxRuntime.jsx)("h2", {
-          className: "text-2xl font-bold text-text-primary mb-2 text-left",
-          children: "Weryfikacja dwuetapowa"
-        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)("p", {
-          className: "text-text-muted mb-6 text-left",
-          children: ["Dla Twojego bezpiecze\u0144stwa, wpisz kod wys\u0142any na Tw\xF3j numer telefonu ", /*#__PURE__*/(0, _jsxRuntime.jsx)("strong", {
-            className: "text-text-primary",
-            children: mfaHint
-          }), "."]
+        children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)("div", {
+          className: "modal-header",
+          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)("h2", {
+            className: "modal-title",
+            children: "Weryfikacja dwuetapowa"
+          }), /*#__PURE__*/(0, _jsxRuntime.jsx)("button", {
+            onClick: onClose,
+            className: "modal-close-btn",
+            children: "\xD7"
+          })]
         }), /*#__PURE__*/(0, _jsxRuntime.jsxs)("form", {
           onSubmit: handleMfa,
           children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)("div", {
-            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)("label", {
-              htmlFor: "mfaCode-input",
-              className: "form-label",
-              children: "Kod weryfikacyjny (6 cyfr)"
-            }), /*#__PURE__*/(0, _jsxRuntime.jsx)("input", {
-              type: "text",
-              id: "mfaCode-input",
-              name: "mfaCode",
-              inputMode: "numeric",
-              pattern: "\\d{6}",
-              maxLength: "6",
-              className: "modal-input text-center text-xl tracking-[0.5em]",
-              required: true
+            className: "modal-body",
+            children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)("p", {
+              className: "mb-6",
+              children: ["Dla Twojego bezpiecze\u0144stwa, wpisz kod wys\u0142any na Tw\xF3j numer telefonu ", /*#__PURE__*/(0, _jsxRuntime.jsx)("strong", {
+                className: "text-text-primary",
+                children: mfaHint
+              }), "."]
+            }), /*#__PURE__*/(0, _jsxRuntime.jsxs)("div", {
+              children: [/*#__PURE__*/(0, _jsxRuntime.jsx)("label", {
+                htmlFor: "mfaCode-input",
+                className: "form-label",
+                children: "Kod weryfikacyjny (6 cyfr)"
+              }), /*#__PURE__*/(0, _jsxRuntime.jsx)("input", {
+                type: "text",
+                id: "mfaCode-input",
+                name: "mfaCode",
+                inputMode: "numeric",
+                pattern: "\\d{6}",
+                maxLength: "6",
+                className: "modal-input text-center text-xl tracking-[0.5em]",
+                required: true
+              })]
+            }), /*#__PURE__*/(0, _jsxRuntime.jsx)("div", {
+              className: "text-red-500 text-sm text-center h-5",
+              children: mfaError
             })]
           }), /*#__PURE__*/(0, _jsxRuntime.jsx)("div", {
-            className: "mt-6",
+            className: "modal-footer",
             children: /*#__PURE__*/(0, _jsxRuntime.jsx)("button", {
               type: "submit",
               className: "modal-btn modal-btn-primary w-full",
@@ -172,9 +169,6 @@ var LoginModal = exports.LoginModal = function LoginModal(_ref) {
               })
             })
           })]
-        }), /*#__PURE__*/(0, _jsxRuntime.jsx)("div", {
-          className: "text-red-500 text-sm mt-4 text-center h-5",
-          children: mfaError
         })]
       })]
     })

@@ -1,10 +1,14 @@
-/**
- * @fileoverview The entry point for the cross-analyzer-gcp application package.
- * In the monorepo architecture, this file NO LONGER renders to the DOM.
- * Its only purpose is to export the main App component, which will be
- * dynamically imported and rendered by the `platform-shell`.
- */
+import React, { Suspense } from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
 import App from './App';
 
-// The main App component is the default export.
-export default App;
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <Suspense fallback={<div>Loading...</div>}>
+      <App />
+    </Suspense>
+  </React.StrictMode>
+);

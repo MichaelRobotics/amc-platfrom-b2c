@@ -1,19 +1,8 @@
-import React from 'react';
-import { CloseIcon } from './Icons'; // Assuming Icons.jsx exists
+// packages/shared-components/src/LoginModal.jsx
 
-/**
- * A modal component for handling user login and multi-factor authentication (MFA).
- * @param {object} props - The component props.
- * @param {boolean} props.isOpen - Controls if the modal is visible.
- * @param {function} props.onClose - Function to call when the modal should be closed.
- * @param {function} props.onLoginSubmit - Async function to handle email/password submission.
- * @param {function} props.onMfaSubmit - Async function to handle the MFA code submission.
- * @param {string} [props.mfaHint] - A hint for the MFA method, like a partial phone number.
- * @param {string} [props.loginError] - Error message to display on the login form.
- * @param {string} [props.mfaError] - Error message to display on the MFA form.
- * @param {boolean} props.isLoading - Indicates if an auth process is in progress.
- * @param {boolean} props.isMfa - Determines whether to show the login or MFA step.
- */
+import React from 'react';
+import { CloseIcon } from './Icons';
+
 export const LoginModal = ({
     isOpen,
     onClose,
@@ -25,12 +14,10 @@ export const LoginModal = ({
     isLoading,
     isMfa,
 }) => {
-    // When isOpen is false, we render nothing. This is key for CSS transitions.
     if (!isOpen) {
         return null;
     }
 
-    // Handles the login form submission.
     const handleLogin = (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
@@ -39,7 +26,6 @@ export const LoginModal = ({
         onLoginSubmit(email, password);
     };
 
-    // Handles the MFA form submission.
     const handleMfa = (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
@@ -47,43 +33,45 @@ export const LoginModal = ({
         onMfaSubmit(mfaCode);
     };
 
-    // The modal-overlay class provides the dark backdrop and flex centering.
-    // The .active class on it controls the fadeIn visibility.
     return (
         <div className={`modal-overlay ${isOpen ? 'active' : ''}`}>
-            {/* The modal-card class handles the modal's appearance and entry animation. */}
-            <div className="modal-card w-full p-8 rounded-2xl relative" style={{maxWidth: '420px'}}>
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors">
-                    <CloseIcon />
-                </button>
+            {/* Use the 'relative' class here if you keep the Tailwind-styled close button */}
+            <div className="modal-card relative" style={{maxWidth: '420px'}}>
 
-                {/* Login Step with Animation */}
+                {/* Login Step with updated structure */}
                 <div id="loginStep" className={`modal-step ${!isMfa ? 'active' : ''}`}>
-                    <h2 className="text-2xl font-bold text-text-primary mb-2 text-left">Witaj z powrotem</h2>
-                    <p className="text-text-muted mb-6 text-left">Zaloguj się, aby uzyskać dostęp do platformy.</p>
+                    <div className="modal-header">
+                        <h2 className="modal-title">Witaj z powrotem</h2>
+                        {/* Note: I'm using modal-close-btn for consistency. You can keep your Tailwind version if you prefer. */}
+                        <button onClick={onClose} className="modal-close-btn">&times;</button>
+                    </div>
                     <form onSubmit={handleLogin}>
-                        <div>
-                            <label htmlFor="email-input" className="form-label">Email</label>
-                            <input
-                                type="email"
-                                id="email-input"
-                                name="email"
-                                className="modal-input"
-                                placeholder="jan.kowalski@firma.com"
-                                required
-                            />
+                        <div className="modal-body">
+                            <p className="mb-6">Zaloguj się, aby uzyskać dostęp do platformy.</p>
+                            <div>
+                                <label htmlFor="email-input" className="form-label">Email</label>
+                                <input
+                                    type="email"
+                                    id="email-input"
+                                    name="email"
+                                    className="modal-input"
+                                    placeholder="jan.kowalski@firma.com"
+                                    required
+                                />
+                            </div>
+                            <div> {/* Removed mt-4, as modal-input has margin-bottom */}
+                                <label htmlFor="password-input" className="form-label">Hasło</label>
+                                <input
+                                    type="password"
+                                    id="password-input"
+                                    name="password"
+                                    className="modal-input"
+                                    required
+                                />
+                            </div>
+                            <div className="text-red-500 text-sm text-center h-5">{loginError}</div>
                         </div>
-                        <div className="mt-4">
-                            <label htmlFor="password-input" className="form-label">Hasło</label>
-                            <input
-                                type="password"
-                                id="password-input"
-                                name="password"
-                                className="modal-input"
-                                required
-                            />
-                        </div>
-                        <div className="mt-6">
+                        <div className="modal-footer">
                             <button type="submit" className="modal-btn modal-btn-primary w-full" disabled={isLoading && !isMfa}>
                                 {isLoading && !isMfa ? (
                                     <><span className="spinner-modal"></span><span>Logowanie...</span></>
@@ -93,31 +81,36 @@ export const LoginModal = ({
                             </button>
                         </div>
                     </form>
-                    <div className="text-red-500 text-sm mt-4 text-center h-5">{loginError}</div>
                 </div>
 
-                {/* MFA Step with Animation */}
+                {/* MFA Step with updated structure */}
                 <div id="mfaStep" className={`modal-step ${isMfa ? 'active' : ''}`}>
-                    <h2 className="text-2xl font-bold text-text-primary mb-2 text-left">Weryfikacja dwuetapowa</h2>
-                    <p className="text-text-muted mb-6 text-left">
-                        Dla Twojego bezpieczeństwa, wpisz kod wysłany na Twój numer telefonu <strong className="text-text-primary">{mfaHint}</strong>.
-                    </p>
+                    <div className="modal-header">
+                        <h2 className="modal-title">Weryfikacja dwuetapowa</h2>
+                        <button onClick={onClose} className="modal-close-btn">&times;</button>
+                    </div>
                     <form onSubmit={handleMfa}>
-                        <div>
-                            <label htmlFor="mfaCode-input" className="form-label">Kod weryfikacyjny (6 cyfr)</label>
-                            <input
-                                type="text"
-                                id="mfaCode-input"
-                                name="mfaCode"
-                                inputMode="numeric"
-                                pattern="\d{6}"
-                                maxLength="6"
-                                className="modal-input text-center text-xl tracking-[0.5em]"
-                                required
-                            />
+                        <div className="modal-body">
+                            <p className="mb-6">
+                                Dla Twojego bezpieczeństwa, wpisz kod wysłany na Twój numer telefonu <strong className="text-text-primary">{mfaHint}</strong>.
+                            </p>
+                            <div>
+                                <label htmlFor="mfaCode-input" className="form-label">Kod weryfikacyjny (6 cyfr)</label>
+                                <input
+                                    type="text"
+                                    id="mfaCode-input"
+                                    name="mfaCode"
+                                    inputMode="numeric"
+                                    pattern="\d{6}"
+                                    maxLength="6"
+                                    className="modal-input text-center text-xl tracking-[0.5em]"
+                                    required
+                                />
+                            </div>
+                             <div className="text-red-500 text-sm text-center h-5">{mfaError}</div>
                         </div>
-                        <div className="mt-6">
-                            <button type="submit" className="modal-btn modal-btn-primary w-full" disabled={isLoading && isMfa}>
+                        <div className="modal-footer">
+                             <button type="submit" className="modal-btn modal-btn-primary w-full" disabled={isLoading && isMfa}>
                                 {isLoading && isMfa ? (
                                     <><span className="spinner-modal"></span><span>Weryfikacja...</span></>
                                 ) : (
@@ -126,7 +119,6 @@ export const LoginModal = ({
                             </button>
                         </div>
                     </form>
-                    <div className="text-red-500 text-sm mt-4 text-center h-5">{mfaError}</div>
                 </div>
             </div>
         </div>

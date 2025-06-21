@@ -8,8 +8,8 @@
  * where you have access to your service account credentials.
  *
  * @example
- * # To grant a user access to the cross-analyzer-gcp product:
- * node set-claims.js user@example.com --productKey=cross-analyzer-gcp
+ * # To grant a user access to the Lean AI Agent product:
+ * node set-claims.js user@example.com --claim=hasLeanAiAgentAccess
  *
  * @example
  * # To make a user an admin:
@@ -21,7 +21,7 @@ const admin = require('firebase-admin');
 const path = require('path');
 
 // --- CONFIGURATION ---
-// IMPORTANT: Update this path to point to your Firebase service account key JSON file.
+// The script expects the service account key to be in the same directory.
 const serviceAccountPath = path.resolve(__dirname, './serviceAccountKey.json');
 // ---------------------
 
@@ -46,11 +46,11 @@ const email = args[0];
 
 if (!email) {
   console.error('Error: Please provide a user email address as the first argument.');
-  console.log('Usage: node set-claims.js <user_email> [--admin] [--productKey=key]');
+  console.log('Usage: node set-claims.js <user_email> [--admin] [--claim=key]');
   process.exit(1);
 }
 
-// Parse flags for admin and productKey
+// Parse flags for admin and custom claims
 const claimsToSet = {};
 let hasFlags = false;
 
@@ -59,49 +59,34 @@ args.slice(1).forEach(arg => {
     claimsToSet.admin = true;
     hasFlags = true;
     console.log('-> Setting admin claim to true.');
-  } else if (arg.startsWith('--productKey=')) {
-    const productKey = arg.split('=')[1];
-    if (productKey) {
-      
-      // --- FIX: This section is corrected ---
-      // Instead of setting a top-level productKey, we create the nested 'products' object
-      // that ProtectedRoute.js is looking for.
-      if (!claimsToSet.products) {
-        claimsToSet.products = {}; // Initialize the products object if it doesn't exist
-      }
-      claimsToSet.products[productKey] = true; // Set the specific product key to true
-      // This results in a claim like: { products: { 'cross-analyzer-gcp': true } }
-      // --- END FIX ---
-
+  } else if (arg.startsWith('--claim=')) {
+    const claimKey = arg.split('=')[1];
+    if (claimKey) {
+      claimsToSet[claimKey] = true; // Set the claim directly, e.g., { hasLeanAiAgentAccess: true }
       hasFlags = true;
-      console.log(`-> Setting product claim for "${productKey}".`);
+      console.log(`-> Setting claim "${claimKey}" to true.`);
     } else {
-      console.warn('Warning: --productKey flag used without a value. Ignoring.');
+      console.warn('Warning: --claim flag used without a value. Ignoring.');
     }
   }
 });
 
 if (!hasFlags) {
-  console.error('Error: Please provide at least one claim flag to set (--admin or --productKey=<key>).');
+  console.error('Error: Please provide at least one claim flag to set (--admin or --claim=<key>).');
   process.exit(1);
 }
 
 // Main function to set the claims
-async function setCustomClaims(email, claims) {
+async function setCustomClaims(email, newClaims) {
   try {
     console.log(`\nFetching user with email: ${email}...`);
     const user = await admin.auth().getUserByEmail(email);
     console.log(`Successfully found user: ${user.uid}`);
 
-    // We merge the new claims with any existing claims the user might have.
+    // Merge the new claims with any existing claims the user might have.
     const existingClaims = user.customClaims || {};
-    const mergedClaims = { ...existingClaims, ...claims };
+    const mergedClaims = { ...existingClaims, ...newClaims };
     
-    // If we're setting a product key, we need to merge the products object carefully.
-    if(claims.products) {
-        mergedClaims.products = { ...(existingClaims.products || {}), ...claims.products };
-    }
-
     console.log(`Setting custom claims:`, mergedClaims);
     await admin.auth().setCustomUserClaims(user.uid, mergedClaims);
     console.log('\n✅ Success! Custom claims have been set on the user account.');

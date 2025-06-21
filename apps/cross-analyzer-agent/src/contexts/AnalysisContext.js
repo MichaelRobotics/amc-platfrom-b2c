@@ -1,16 +1,12 @@
 /**
  * @fileoverview A React context to provide a real-time list of a user's analyses.
- * FULLY REFACTORED FOR MONOREPO:
- * - Imports 'firestore' from the shared 'packages/firebase-helpers/client'.
- * - Imports and uses the 'useAuth' hook from 'platform-shell'.
- * - The Firestore query is now securely scoped to only fetch analyses belonging
- * to the currently logged-in user, preventing data leaks.
+ * This version is corrected to work with the shared AuthContext.
  */
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 // Import shared services and contexts from the monorepo structure
-import { firestore as db } from '../firebase-helpers/client';
+import { firestore as db } from '@amc-platfrom/firebase-helpers';
 import { useAuth } from '@amc-platfrom/shared-contexts';
 
 const AnalysisContext = createContext();
@@ -31,11 +27,17 @@ export const useAnalysisContext = () => {
 export const AnalysisProvider = ({ children }) => {
     const [userCreatedAnalyses, setUserCreatedAnalyses] = useState([]);
     const [isLoadingAnalyses, setIsLoadingAnalyses] = useState(true);
-    const { currentUser } = useAuth(); // Get the current user from the global context
+    
+    // --- FIX: Destructure 'user' instead of 'currentUser' ---
+    // The useAuth() hook provides a 'user' object from the AuthContext.
+    const { user } = useAuth(); 
 
     useEffect(() => {
-        // If there's no user logged in, clear any existing data and stop.
-        if (!currentUser) {
+        // This effect now depends on the 'user' object from the auth context.
+        
+        // If there's no user logged in, or if the user object is still loading from the parent
+        // provider, we clear any existing data and stop. This is a critical safety check.
+        if (!user) {
             setUserCreatedAnalyses([]);
             setIsLoadingAnalyses(false);
             return;
@@ -43,13 +45,13 @@ export const AnalysisProvider = ({ children }) => {
 
         setIsLoadingAnalyses(true);
 
-        // This query is now SECURE. It fetches documents from the 'analyses' collection
-        // ONLY where the 'userId' field matches the logged-in user's UID.
-        // It also sorts them by creation date.
+        // The query is now safe because we know the 'user' object exists.
+        // It fetches documents from the 'analyses' collection ONLY where the 
+        // 'userId' field matches the logged-in user's UID.
         const q = query(
             collection(db, "analyses"),
-            where("userId", "==", currentUser.uid),
-            orderBy("createdAt", "desc") // Show newest analyses first
+            where("userId", "==", user.uid), // Use the 'user' object here
+            orderBy("createdAt", "desc")    // Show newest analyses first
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -59,15 +61,13 @@ export const AnalysisProvider = ({ children }) => {
         }, (error) => {
             console.error("Error fetching user analyses:", error);
             setIsLoadingAnalyses(false);
-            // Optionally set an error state here
         });
 
-        // Cleanup the listener when the component unmounts or the user logs out
+        // Cleanup the listener when the component unmounts or the user object changes
         return () => unsubscribe();
 
-    }, [currentUser]); // The effect re-runs whenever the user logs in or out.
+    }, [user]); // The effect re-runs whenever the user logs in, logs out, or the session is established.
 
-    // The value object is passed down to all children of this provider.
     const value = {
         userCreatedAnalyses,
         isLoadingAnalyses,

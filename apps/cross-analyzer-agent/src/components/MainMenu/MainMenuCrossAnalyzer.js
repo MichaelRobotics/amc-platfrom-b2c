@@ -9,7 +9,7 @@ import { ref, uploadBytes } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 
 // Import shared services and contexts from the monorepo structure
-import { storage } from '../../firebase-helpers/client';
+import { storage } from '@amc-platfrom/firebase-helpers';
 import { useAuth } from '@amc-platfrom/shared-contexts';
 
 // Import local components and services
@@ -40,7 +40,7 @@ const MainMenuCrossAnalyzer = () => {
     const [initialModalAnalysisName, setInitialModalAnalysisName] = useState('');
     
     const csvFileInputRef = useRef(null);
-    const { currentUser } = useAuth()
+    const { user } = useAuth()
     const navigate = useNavigate(); // Using navigate hook from react-router-dom
     const { showToast } = useToast();
 
@@ -76,7 +76,7 @@ const MainMenuCrossAnalyzer = () => {
     };
 
     const handleAnalyzeFileClick = () => {
-        if (!currentUser) {
+        if (!user) {
             showToast('Proszę się zalogować, aby rozpocząć analizę.', 'error');
             return;
         }
@@ -90,7 +90,7 @@ const MainMenuCrossAnalyzer = () => {
     // This function now implements the NEW asynchronous flow
     const processAnalysisWithName = async (analysisName) => {
         setIsAnalysisNameModalOpen(false);
-        if (!selectedFile || !currentUser) {
+        if (!selectedFile || !user) {
             showToast('Błąd: Plik lub użytkownik nie jest już dostępny.', 'error');
             return;
         }
@@ -98,7 +98,7 @@ const MainMenuCrossAnalyzer = () => {
         setIsLoading(true);
         const analysisId = uuidv4();
         const originalFileName = selectedFile.name;
-        const userId = currentUser.uid;
+        const userId = user.uid;
 
         try {
             showAppStatusMessage(`Krok 1/2: Wysyłanie pliku ${originalFileName}...`, 'info');
@@ -127,7 +127,7 @@ const MainMenuCrossAnalyzer = () => {
     };
     
     const handleBrowseAnalyses = () => {
-         if (!currentUser) {
+         if (!user) {
             showToast('Proszę się zalogować, aby przeglądać analizy.', 'error');
             return;
         }
@@ -138,7 +138,7 @@ const MainMenuCrossAnalyzer = () => {
         setIsWitnessModalOpen(true);
     };
     
-    const isDisabled = !currentUser || isLoading;
+    const isDisabled = !user || isLoading;
 
     return (
         <div className="new-landing-page-body-wrapper">

@@ -6,7 +6,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { collection, query, where, onSnapshot, updateDoc, doc } from 'firebase/firestore';
 
 // Import shared services and contexts
-import { db } from '../../firebase-helpers/client';
+import { firestore as db } from '@amc-platfrom/firebase-helpers';
 import { useAuth } from '@amc-platfrom/shared-contexts';
 
 import Toast from '../UI/Toast'; // Uses your original Toast component

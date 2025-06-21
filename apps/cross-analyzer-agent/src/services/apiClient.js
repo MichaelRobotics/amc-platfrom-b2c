@@ -1,5 +1,6 @@
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '../firebase-helpers/client';
+import { functions } from '@amc-platfrom/firebase-helpers';
+
 
 const apiClient = {
   /**

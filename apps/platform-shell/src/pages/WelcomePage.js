@@ -11,14 +11,15 @@ const WelcomePage = () => {
     // State for the modals
     const [isContactModalOpen, setContactModalOpen] = useState(false);
     const [isRecModalOpen, setRecModalOpen] = useState(false);
-    
+
     // State for Recommendation Modal
     const [recStep, setRecStep] = useState(1);
     const [recCategory, setRecCategory] = useState('');
     const [recRole, setRecRole] = useState('');
     const [recProblem, setRecProblem] = useState('');
     const [isRecLoading, setRecLoading] = useState(false);
-    
+    const [recommendationResult, setRecommendationResult] = useState('');
+
     // State for Contact Modal
     const [contactStep, setContactStep] = useState(1);
     const [contactRole, setContactRole] = useState('');
@@ -27,7 +28,10 @@ const WelcomePage = () => {
     const [isContactLoading, setContactLoading] = useState(false);
     const [interpretation, setInterpretation] = useState('');
     const [emailPreview, setEmailPreview] = useState('');
-     const [emailError, setEmailError] = useState('');
+    const [emailError, setEmailError] = useState('');
+    const [isEditingInterpretation, setIsEditingInterpretation] = useState(false);
+    const interpretationBoxRef = useRef(null);
+
 
     // --- Scroll Animation Logic ---
     useEffect(() => {
@@ -43,7 +47,13 @@ const WelcomePage = () => {
         handleScrollAnimation(); // Trigger on mount
         return () => window.removeEventListener("scroll", handleScrollAnimation);
     }, []);
-    
+
+    const productDatabase = {
+        'digital-twins': { name: "Digital Twin AI", url: "/digital-twins", value: (p) => `Simulates processes to find the cause of <strong>'${p}'</strong> and test solutions without risk.`, secondary: { name: "Analytical Training", url: "/training", value: "Increase your team's skills in interpreting simulation data." } },
+        'ai-agents': { name: "Lean AI Agent", url: "/ai-agents", value: (p) => `Monitors operational data in real time to predict and prevent the problem: <strong>'${p}'</strong>.`, secondary: { name: "Digital Twin X", url: "/digital-twins", value: "Visualize the Agent's recommendations on a digital model of your process." } },
+        'training': { name: "Visual Management Training", url: "/training", value: (p) => `Implements standards that increase process transparency and help to react quickly to the problem: <strong>'${p}'</strong>.`, secondary: { name: "Lean AI Agent", url: "/ai-agents", value: "Automatically monitor compliance with new standards to ensure the durability of changes." } }
+    };
+
     // --- Recommendation Modal Logic ---
     const handlePathButtonClick = (path, title) => {
         setRecCategory(path);
@@ -60,24 +70,53 @@ const WelcomePage = () => {
         }
         setRecLoading(true);
         setRecStep(2);
-        // Simulate API call
         setTimeout(() => {
+            const primary = productDatabase[recCategory];
+            const secondary = primary.secondary;
+            setRecommendationResult(`
+                <div class="recommendation-grid">
+                    <div class="rec-card rec-card-primary">
+                        <div class="rec-card-header"><div class="rec-card-icon">💡</div><h3 class="rec-card-title">Main Recommendation</h3></div>
+                        <p class="rec-card-subtitle">${primary.name}</p>
+                        <p class="rec-card-value"><strong>Why this solution?</strong><br>${primary.value(recProblem)}</p>
+                        <div class="rec-card-footer"><a href="${primary.url}" class="rec-learn-more-btn modal-btn modal-btn-primary">Learn More</a></div>
+                    </div>
+                    <div class="rec-card">
+                        <div class="rec-card-header"><div class="rec-card-icon">➕</div><h3 class="rec-card-title">Also Consider</h3></div>
+                        <p class="rec-card-subtitle">${secondary.name}</p>
+                        <p class="rec-card-value">${secondary.value}</p>
+                        <div class="rec-card-footer"><a href="${secondary.url}" class="rec-learn-more-btn modal-btn modal-btn-secondary">Learn More</a></div>
+                    </div>
+                </div>`);
             setRecLoading(false);
-        }, 1500);
+        }, 2000);
     };
-    
+
+    const handleRecAccept = () => {
+        setRecModalOpen(false);
+        setContactRole(recRole);
+        setContactUsage(recProblem);
+        handleGetStarted(true);
+        handleSubmitContactInfo(true);
+    }
+
     // --- Contact Modal Logic ---
-    const handleGetStarted = () => {
-        setContactStep(1);
-        setContactRole('');
-        setContactUsage('');
-        setContactEmail('');
-        setEmailError('');
+    const handleGetStarted = (isFromRec = false) => {
+        if (!isFromRec) {
+            setContactStep(1);
+            setContactRole('');
+            setContactUsage('');
+            setContactEmail('');
+            setEmailError('');
+        }
         setContactModalOpen(true);
     };
+
+    const handleSubmitContactInfo = (isFromRec = false) => {
+        const role = isFromRec ? recRole : contactRole;
+        const usage = isFromRec ? recProblem : contactUsage;
     
-    const handleSubmitContactInfo = () => {
-        if (!contactRole || !contactUsage) {
+        if (!role || !usage) {
             alert('Please fill in both fields.');
             return;
         }
@@ -85,13 +124,32 @@ const WelcomePage = () => {
         setContactStep(2);
         // Simulate AI analysis
         setTimeout(() => {
-            const generatedInterpretation = `As a <strong>${contactRole}</strong>, you want to solve the problem: <strong>${contactUsage}</strong>. Our goal will be to show you how our tools can help with this.`;
+            const generatedInterpretation = `<span class="label">As a:</span> <strong><span class="math-inline">\{role\}</strong\><br\><span class\="label"\>You want to solve the problem\:</span\> <strong\></span>{usage}</strong><br><br><span class="label">Our goal will be to show you how our tools can help with this.</span>`;
             setInterpretation(generatedInterpretation);
             setContactLoading(false);
         }, 1500);
     };
+    
+    const handleEditInterpretation = () => {
+        const isEditing = !isEditingInterpretation;
+        setIsEditingInterpretation(isEditing);
+
+        if (isEditing) {
+            setTimeout(() => {
+                interpretationBoxRef.current.focus();
+            }, 0);
+        } else {
+            // Save the changes from the contentEditable div
+            setInterpretation(interpretationBoxRef.current.innerHTML);
+        }
+    };
 
     const handleAcceptInterpretation = () => {
+        if(isEditingInterpretation) {
+            // If user clicks "Yes" while editing, save first.
+            setInterpretation(interpretationBoxRef.current.innerHTML);
+            setIsEditingInterpretation(false);
+        }
         setContactStep(3);
         const plainText = document.createElement("div");
         plainText.innerHTML = interpretation;
@@ -100,8 +158,8 @@ const WelcomePage = () => {
     };
 
     const handleProceedToCalendar = () => {
-         const freeEmailDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com'];
-         const isValidCorporateEmail = (email) => {
+        const freeEmailDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com'];
+        const isValidCorporateEmail = (email) => {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) return false;
             const domain = email.split('@')[1];
@@ -125,9 +183,9 @@ const WelcomePage = () => {
         <div className="main-container">
             {/* Hero Section */}
             <section className="hero-section-platform">
-                <h1 className="platform-headline">Unleash Your Company's Potential with the <span className="highlight">AMC Platform</span></h1>
+            <h1 className="platform-headline">Unleash Your Company's <br /> Potential with the <span className="highlight">AMC Platform</span></h1>
                 <p className="platform-subheadline">Transform data into strategic decisions, automate processes with intelligent agents, and develop your team's skills. Complete solutions for modern industry.</p>
-                <button id="getStartedFreeBtn" className="platform-cta-button" onClick={handleGetStarted}>Get Started for Free</button>
+                <button id="getStartedFreeBtn" className="platform-cta-button" onClick={() => handleGetStarted(false)}>Get Started for Free</button>
             </section>
 
             {/* Choose Path Section */}
@@ -152,20 +210,20 @@ const WelcomePage = () => {
                     </button>
                 </div>
             </section>
-            
+
             <p className="footer-text">&copy; 2024-2025 Advanced Manufacturing Consulting. All rights reserved. Created with a passion for innovation.</p>
-        
+
             {/* Recommendation Modal */}
             {isRecModalOpen && (
-                <div className="modal-overlay active">
+                <div id="recommendationModal" className="modal-overlay active">
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h2 className="modal-title">Recommendation for: {recCategory.replace('-', ' ')}</h2>
-                            <button className="modal-close-btn" onClick={() => setRecModalOpen(false)}>&times;</button>
+                            <h2 className="modal-title" id="recommendationModalTitle">Find a Solution</h2>
+                            <button id="closeRecommendationModalBtn" className="modal-close-btn" onClick={() => setRecModalOpen(false)}>&times;</button>
                         </div>
                         <div className="modal-body">
-                           {recStep === 1 && (
-                               <div className="modal-step active">
+                            {recStep === 1 && (
+                                <div id="recStep1" className="modal-step active">
                                     <p>Describe your role and the problem, and our agent will find the best solution for you.</p>
                                     <div>
                                         <label htmlFor="recUserRole" className="form-label">Your role in the company:</label>
@@ -173,96 +231,133 @@ const WelcomePage = () => {
                                     </div>
                                     <div>
                                         <label htmlFor="recProblemDescription" className="form-label">Describe the problem or goal:</label>
-                                        <textarea id="recProblemDescription" className="form-textarea" placeholder="E.g., 'Frequent, unplanned downtime of a key machine'" value={recProblem} onChange={e => setRecProblem(e.target.value)}></textarea>
+                                        <input type="text" id="recProblemDescription" className="form-input" placeholder="E.g., 'Frequent, unplanned downtime of a key machine'" value={recProblem} onChange={e => setRecProblem(e.target.value)} />
                                     </div>
                                     <div className="modal-footer">
-                                        <button className="modal-btn modal-btn-primary" onClick={handleFindSolution} disabled={isRecLoading}>
+                                        <button id="findSolutionBtn" className="modal-btn modal-btn-primary" onClick={handleFindSolution} disabled={isRecLoading}>
                                             {isRecLoading ? <Spinner /> : 'Find Solution'}
                                         </button>
                                     </div>
                                 </div>
-                           )}
-                           {recStep === 2 && (
-                                <div className="modal-step active">
+                            )}
+                            {recStep === 2 && (
+                                <div id="recStep2" className="modal-step active">
                                     {isRecLoading ? (
-                                        <p className="agent-thinking">Agent is analyzing...<span>.</span><span>.</span><span>.</span></p>
+                                        <p className="agent-thinking">Agent is analyzing your request...<span>.</span><span>.</span><span>.</span></p>
                                     ) : (
-                                        <p>Display recommendation results here...</p> 
+                                        <div id="recommendationResult" dangerouslySetInnerHTML={{ __html: recommendationResult }}></div>
                                     )}
-                                     <div className="modal-footer" style={{justifyContent: 'space-between'}}>
-                                        <button onClick={() => setRecStep(1)} className="modal-btn modal-btn-secondary">Back</button>
-                                        <button onClick={() => alert("Contact Requested")} className="modal-btn modal-btn-primary">Request Contact</button>
+                                    <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+                                        <button id="recBackBtn" className="modal-btn modal-btn-secondary" onClick={() => setRecStep(1)}>Back</button>
+                                        <button id="recAcceptBtn" className="modal-btn modal-btn-primary" onClick={handleRecAccept}>Request Contact</button>
                                     </div>
                                 </div>
-                           )}
+                            )}
                         </div>
                     </div>
                 </div>
             )}
-            
+
             {/* Contact Modal */}
             {isContactModalOpen && (
-                 <div className="modal-overlay active">
+                <div id="preDemoChatModal" className="modal-overlay active">
                     <div className="modal-content">
-                         <div className="modal-header">
-                            <h2 className="modal-title">Let's Talk About Your Needs</h2>
-                            <button className="modal-close-btn" onClick={() => setContactModalOpen(false)}>&times;</button>
+                        <div className="modal-header">
+                            <h2 className="modal-title" id="chatModalTitle">Let's Talk About Your Needs</h2>
+                            <button id="closeChatModalBtn" className="modal-close-btn" onClick={() => setContactModalOpen(false)}>&times;</button>
                         </div>
                         <div className="modal-body">
                             {contactStep === 1 && (
-                                <div className="modal-step active">
+                                <div id="chatStep1" className="modal-step active">
                                     <p>To help the AI agent accurately interpret your needs, describe your role in the company and the key challenges you want to solve.</p>
-                                    <div><label htmlFor="userRole" className="form-label">Your role in the company:</label><input type="text" id="userRole" className="form-input" placeholder="E.g., Operations Director" value={contactRole} onChange={e => setContactRole(e.target.value)} /></div>
-                                    <div><label htmlFor="demoUsage" className="form-label">What goals or problems do you want to solve with our help?</label><textarea id="demoUsage" className="form-textarea" placeholder="Describe your goals..." value={contactUsage} onChange={e => setContactUsage(e.target.value)}></textarea></div>
-                                    <div className="modal-footer"><button className="modal-btn modal-btn-primary" onClick={handleSubmitContactInfo} disabled={isContactLoading}>{isContactLoading ? <Spinner/> : "Submit for AI Analysis"}</button></div>
+                                    <div>
+                                        <label htmlFor="userRole" className="form-label">Your role in the company:</label>
+                                        <input type="text" id="userRole" className="form-input" placeholder="E.g., Operations Director, Process Engineer" value={contactRole} onChange={e => setContactRole(e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="demoUsage" className="form-label">What goals or problems do you want to solve with our help?</label>
+                                        <input id="demoUsage" className="form-input" placeholder="Describe your goals, e.g., 'We want to reduce machine downtime by 15%.'" value={contactUsage} onChange={e => setContactUsage(e.target.value)}></input>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button id="submitChatInfoBtn" className="modal-btn modal-btn-primary" onClick={() => handleSubmitContactInfo(false)} disabled={isContactLoading}>
+                                            {isContactLoading ? <Spinner /> : (
+                                                <>
+                                                    <span>Submit for AI Analysis</span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                             {contactStep === 2 && (
-                                <div className="modal-step active">
-                                     {isContactLoading ? (
+                                <div id="chatStep2" className="modal-step active">
+                                    {isContactLoading ? (
                                         <p className="agent-thinking">Analyzing...<span>.</span><span>.</span><span>.</span></p>
                                     ) : (
                                         <>
                                             <p>The AI agent has analyzed your request. Here is its interpretation. You can edit it if you want to clarify anything.</p>
-                                            <div className="interpretation-box" dangerouslySetInnerHTML={{ __html: interpretation }}></div>
+                                            <div 
+                                                id="aiInterpretationText" 
+                                                ref={interpretationBoxRef}
+                                                className={`interpretation-box ${isEditingInterpretation ? 'is-editing' : ''}`}
+                                                contentEditable={isEditingInterpretation}
+                                                dangerouslySetInnerHTML={{ __html: interpretation }}
+                                                onBlur={(e) => { if(isEditingInterpretation) setInterpretation(e.target.innerHTML);}}
+                                            ></div>
                                             <p>Does this interpretation accurately reflect your expectations?</p>
                                         </>
                                     )}
+
                                     <div className="modal-footer">
-                                        <button className="modal-btn modal-btn-secondary" onClick={() => setContactStep(1)}>Back</button>
-                                        <button className="modal-btn modal-btn-primary" onClick={handleAcceptInterpretation}>Yes, that's correct</button>
+                                        <button id="editInterpretationBtn" className="modal-btn modal-btn-secondary" onClick={handleEditInterpretation}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
+                                            <span id="editBtnText">{isEditingInterpretation ? 'Save' : 'Edit'}</span>
+                                        </button>
+                                        <button id="acceptInterpretationBtn" className="modal-btn modal-btn-primary" onClick={handleAcceptInterpretation}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                                            <span>Yes, that's correct</span>
+                                        </button>
                                     </div>
                                 </div>
                             )}
                             {contactStep === 3 && (
-                                <div className="modal-step active">
+                                <div id="chatStep3" className="modal-step active">
                                     <p>Excellent. Please provide your corporate email address. The agent will prepare a personalized inquiry message that you can review and edit below.</p>
-                                    <div><label htmlFor="companyEmail" className="form-label">Corporate email address:</label><input type="email" id="companyEmail" className="form-input" placeholder="john.doe@yourcompany.com" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} /></div>
-                                    <div><label htmlFor="emailPreview" className="form-label">Generated message content (you can edit):</label><textarea id="emailPreview" className="form-textarea" value={emailPreview} onChange={e => setEmailPreview(e.target.value)} style={{minHeight: '150px'}}></textarea></div>
-                                    {emailError && <div className="text-red-400 text-sm mt-2 mb-3">{emailError}</div>}
+                                    <div>
+                                        <label htmlFor="companyEmail" className="form-label">Corporate email address:</label>
+                                        <input type="email" id="companyEmail" className="form-input" placeholder="john.doe@yourcompany.com" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="emailPreview" className="form-label">Generated message content (you can edit):</label>
+                                        <textarea id="emailPreview" className="form-textarea" value={emailPreview} onChange={e => setEmailPreview(e.target.value)} style={{ minHeight: '150px' }}></textarea>
+                                    </div>
+                                    {emailError && <div id="emailValidationError" className="text-red-400 text-sm mt-2 mb-3">{emailError}</div>}
                                     <div className="modal-footer">
-                                        <button className="modal-btn modal-btn-primary" onClick={handleProceedToCalendar} disabled={isContactLoading}>{isContactLoading ? <Spinner /> : "Approve and proceed"}</button>
+                                        <button id="approveAndProceedBtn" className="modal-btn modal-btn-primary" onClick={handleProceedToCalendar} disabled={isContactLoading}>
+                                            {isContactLoading ? <Spinner /> : <span className="button-text-label">Approve and proceed to calendar</span>}
+                                        </button>
                                     </div>
                                 </div>
                             )}
                             {contactStep === 4 && (
-                                 <div className="modal-step active">
+                                <div id="chatStep4" className="modal-step active">
                                     <div className="final-step-container">
                                         <div className="success-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg></div>
                                         <h3>Thank you!</h3>
                                         <p>Your inquiry has been processed. Please choose your preferred next step.</p>
                                         <div className="action-grid">
                                             <a href="https://calendly.com/yourlink" target="_blank" rel="noopener noreferrer" className="action-card">
-                                                <div className="action-card-icon">{/* Calendar Icon */}</div>
-                                                <div><div className="action-card-title">Schedule a Call</div><div className="action-card-desc">Choose a convenient time in our calendar.</div></div>
+                                                <div className="action-card-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg></div>
+                                                <div><div className="action-card-title">Schedule a Call</div><div className="action-card-desc">Choose a convenient time for a presentation in our calendar.</div></div>
                                             </a>
                                             <a href="https://www.linkedin.com/in/your-ceo-profile/" target="_blank" rel="noopener noreferrer" className="action-card">
-                                                <div className="action-card-icon">{/* LinkedIn Icon */}</div>
-                                                <div><div className="action-card-title">Strategic Contact</div><div className="action-card-desc">Talk to the CEO about partnerships.</div></div>
+                                                <div className="action-card-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M20.5 2h-17A1.5 1.5 0 0 0 2 3.5v17A1.5 1.5 0 0 0 3.5 22h17a1.5 1.5 0 0 0 1.5-1.5v-17A1.5 1.5 0 0 0 20.5 2ZM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 1 1 8.25 6.5 1.75 1.75 0 0 1 6.5 8.25ZM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0 0 13 14.19a.66.66 0 0 0 0 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 0 1 2.7-1.4c1.55 0 3.36.96 3.36 3.66Z"></path></svg></div>
+                                                <div><div className="action-card-title">Strategic Contact</div><div className="action-card-desc">Talk to the CEO about large-scale implementations or partnerships.</div></div>
                                             </a>
                                         </div>
-                                        <div className="modal-footer" style={{border:'none', paddingTop:0, marginTop:'1.5rem', justifyContent:'center'}}>
-                                            <button className="modal-btn modal-btn-secondary" onClick={() => setContactModalOpen(false)}>Finish</button>
+                                        <div className="modal-footer" style={{ border: 'none', paddingTop: 0, marginTop: '1.5rem', justifyContent: 'center' }}>
+                                            <button id="finishModalBtn" className="modal-btn modal-btn-secondary" onClick={() => setContactModalOpen(false)}>Finish</button>
                                         </div>
                                     </div>
                                 </div>

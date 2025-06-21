@@ -41,12 +41,13 @@ html, body {
     justify-content: center;
     min-height: 100vh;
     margin: 0;
-    padding: 1rem;
+    /* CHANGE THE PADDING TO ACCOUNT FOR THE NAVBAR */
+    padding: 72px 1rem 1rem 1rem; /* Use a value like 72px for top padding */
     box-sizing: border-box;
     overflow-x: hidden;
     position: relative;
     width: 100%;
-}
+    }
 
 .new-landing-page-body-wrapper::before {
     content: '';
@@ -86,7 +87,6 @@ html, body {
     border: none;
     transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, backdrop-filter 0.4s ease-out;
     position: relative;
-    z-index: 1;
 }
 .analyzer-card:hover {
     transform: translateY(-4px) scale(1.005);
@@ -429,6 +429,7 @@ html, body {
     min-height: 20px;
     text-align: left;
 }
+
 /* === END OF NEW LANDING PAGE STYLES === */
 
 

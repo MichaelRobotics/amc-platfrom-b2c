@@ -21,6 +21,7 @@ Object.defineProperty(exports, "SharedNavBar", {
     return _SharedNavBar.SharedNavBar;
   }
 });
+require("./styles.css");
 var _SharedNavBar = require("./SharedNavBar");
 var _LoginModal = require("./LoginModal");
 var _ProtectedRoute = require("./ProtectedRoute");

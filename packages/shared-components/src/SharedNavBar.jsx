@@ -42,17 +42,29 @@ const menuConfig = {
     }
 };
 
-export const SharedNavBar = ({ user, claims, onLogin, onLogout }) => {
+/**
+ * A versatile NavLink component that can render either a React Router <Link>
+ * for internal navigation or a standard <a> tag for external navigation.
+ */
+const SmartNavLink = ({ href, shellUrl, children, ...props }) => {
+    if (shellUrl) {
+        // If shellUrl is provided, it's an external link.
+        // We construct the full URL and use a standard anchor tag.
+        return <a href={`${shellUrl}${href}`} {...props}>{children}</a>;
+    }
+    // Otherwise, use the React Router <Link> for client-side navigation.
+    return <Link to={href} {...props}>{children}</Link>;
+};
+
+export const SharedNavBar = ({ user, claims, onLogin, onLogout, shellUrl }) => {
     const [activeMenu, setActiveMenu] = useState(null);
     const [isPanelVisible, setIsPanelVisible] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
     
     const navigate = useNavigate();
-    // Use useRef to hold timer IDs, which persists them across renders.
     const mouseLeaveTimeoutRef = useRef(null);
     const closingTimeoutRef = useRef(null);
 
-    // This function cancels all pending "close" actions.
     const cancelClosing = () => {
         clearTimeout(mouseLeaveTimeoutRef.current);
         clearTimeout(closingTimeoutRef.current);
@@ -66,17 +78,13 @@ export const SharedNavBar = ({ user, claims, onLogin, onLogout }) => {
     };
 
     const handleMouseLeave = () => {
-        // Start a timer to close the menu.
         mouseLeaveTimeoutRef.current = setTimeout(() => {
-            setIsClosing(true); // Trigger the .is-closing CSS animation
-            
-            // After the animation is done (300ms), fully hide the panel and reset state.
+            setIsClosing(true);
             closingTimeoutRef.current = setTimeout(() => {
                 setIsPanelVisible(false);
                 setActiveMenu(null);
                 setIsClosing(false);
-            }, 300); // Must match the animation duration in CSS
-
+            }, 300);
         }, 200);
     };
     
@@ -84,10 +92,15 @@ export const SharedNavBar = ({ user, claims, onLogin, onLogout }) => {
         cancelClosing();
         setIsPanelVisible(false);
         setActiveMenu(null);
-        navigate(href);
+        if (shellUrl) {
+            // If it's an external link, perform a full browser redirect.
+            window.location.href = `${shellUrl}${href}`;
+        } else {
+            // Otherwise, navigate internally.
+            navigate(href);
+        }
     };
 
-    // Construct the className string for the panel dynamically
     const panelClassName = [
         isPanelVisible ? 'active' : '',
         isClosing ? 'is-closing' : ''
@@ -95,83 +108,76 @@ export const SharedNavBar = ({ user, claims, onLogin, onLogout }) => {
 
     const ActiveMenuContent = activeMenu ? menuConfig[activeMenu] : null;
 
-// In SharedNavBar.js, update the entire return block
+    return (
+        <div onMouseLeave={handleMouseLeave}>
+            <header className="top-bar">
+                <div className="top-bar-content">
+                    <div className="top-bar-left">
+                        <SmartNavLink href="/" shellUrl={shellUrl} className="platform-logo-topbar hover:opacity-80 transition-opacity">
+                            Platforma <span className="amc-highlight">AMC</span>
+                        </SmartNavLink>
 
-return (
-    // This parent container handles the main mouse leave event
-    <div onMouseLeave={handleMouseLeave}>
-        <header className="top-bar">
-            <div className="top-bar-content">
-
-                {/* FIX: Wrapper for logo and nav links */}
-                <div className="top-bar-left">
-                    <Link to="/" className="platform-logo-topbar hover:opacity-80 transition-opacity">
-                        Platforma <span className="amc-highlight">AMC</span>
-                    </Link>
-
-                    <nav className="top-nav-links">
-                        {Object.keys(menuConfig).map((key) => (
-                            <div
-                                key={key}
-                                className={`nav-link-top ${activeMenu === key ? 'active-hover' : ''}`}
-                                onMouseEnter={() => handleMouseEnter(key)}
-                            >
-                                {menuConfig[key].title}
-                            </div>
-                        ))}
-                    </nav>
-                </div>
-
-                {/* The user status container remains on the right */}
-                <div className="user-status-container">
-                    {user ? (
-                        claims?.admin ? (
-                            <div className="admin-status-in"> 
-                                <Link to="/admin" className="user-avatar-icon" title="Admin Panel"><AdminIcon /></Link>
-                                <span className="user-greeting">Panel Administratora</span>
-                                <button onClick={onLogout} className="btn-base sign-out-btn"><SignOutIcon /><span>Wyloguj</span></button>
-                            </div>
-                        ) : (
-                            <div className="user-status-in">
-                                <Link to="/account" className="user-avatar-icon" title="Moje Konto"><UserIcon /></Link>
-                                <span className="user-greeting">Witaj, {user.displayName || 'Użytkowniku'}</span>
-                                <button onClick={onLogout} className="btn-base sign-out-btn"><SignOutIcon /><span>Wyloguj</span></button>
-                            </div>
-                        )
-                    ) : (
-                        <div className="user-status-out">
-                            <button onClick={onLogin} className="btn-base sign-in-btn">
-                                <SignInIcon />
-                                Zaloguj się
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </header>
-
-        <div
-            id="mega-menu-panel"
-            className={panelClassName}
-            onMouseEnter={cancelClosing} 
-        >
-            {/* Mega menu content rendering remains the same */}
-            {ActiveMenuContent && (
-                <div className="mega-menu-content">
-                    <div className="mega-menu-grid">
-                        {ActiveMenuContent.items.map((item, index) => (
-                            <div key={index} onClick={() => handleItemClick(item.href)} className="mega-menu-item">
-                                <div className="item-icon">{item.icon}</div>
-                                <div>
-                                    <div className="item-title">{item.title}</div>
-                                    <div className="item-desc">{item.desc}</div>
+                        <nav className="top-nav-links">
+                            {Object.keys(menuConfig).map((key) => (
+                                <div
+                                    key={key}
+                                    className={`nav-link-top ${activeMenu === key ? 'active-hover' : ''}`}
+                                    onMouseEnter={() => handleMouseEnter(key)}
+                                >
+                                    {menuConfig[key].title}
                                 </div>
+                            ))}
+                        </nav>
+                    </div>
+
+                    <div className="user-status-container">
+                        {user ? (
+                            claims?.admin ? (
+                                <div className="admin-status-in"> 
+                                    <SmartNavLink href="/admin" shellUrl={shellUrl} className="user-avatar-icon" title="Admin Panel"><AdminIcon /></SmartNavLink>
+                                    <span className="user-greeting">Panel Administratora</span>
+                                    <button onClick={onLogout} className="btn-base sign-out-btn"><SignOutIcon /><span>Wyloguj</span></button>
+                                </div>
+                            ) : (
+                                <div className="user-status-in">
+                                    <SmartNavLink href="/account" shellUrl={shellUrl} className="user-avatar-icon" title="Moje Konto"><UserIcon /></SmartNavLink>
+                                    <span className="user-greeting">Witaj, {user.displayName || 'Użytkowniku'}</span>
+                                    <button onClick={onLogout} className="btn-base sign-out-btn"><SignOutIcon /><span>Wyloguj</span></button>
+                                </div>
+                            )
+                        ) : (
+                            <div className="user-status-out">
+                                <button onClick={onLogin} className="btn-base sign-in-btn">
+                                    <SignInIcon />
+                                    Zaloguj się
+                                </button>
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
-            )}
+            </header>
+
+            <div
+                id="mega-menu-panel"
+                className={panelClassName}
+                onMouseEnter={cancelClosing} 
+            >
+                {ActiveMenuContent && (
+                    <div className="mega-menu-content">
+                        <div className="mega-menu-grid">
+                            {ActiveMenuContent.items.map((item, index) => (
+                                <div key={index} onClick={() => handleItemClick(item.href)} className="mega-menu-item">
+                                    <div className="item-icon">{item.icon}</div>
+                                    <div>
+                                        <div className="item-title">{item.title}</div>
+                                        <div className="item-desc">{item.desc}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
 };

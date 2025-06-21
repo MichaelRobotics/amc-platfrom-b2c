@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, collection, setDoc, serverTimestamp } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../../firebase-helpers/client';
+import { firestore as db } from '@amc-platfrom/firebase-helpers';
 import { useAuth } from '@amc-platfrom/shared-contexts'; // FIX: Using the correct, centralized hook.
 import Sidebar from './Sidebar';
 import AnalysisContent from './AnalysisContent';

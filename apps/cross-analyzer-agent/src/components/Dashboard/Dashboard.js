@@ -15,7 +15,7 @@ import { AnalysisProvider } from '../../contexts/AnalysisContext';
 const Dashboard = () => {
     const { analysisId } = useParams();
     const navigate = useNavigate();
-    const { currentUser } = useAuth(); 
+    const { user } = useAuth(); 
     const { showToast } = useToast();
 
     // All original state management is preserved.
@@ -33,9 +33,9 @@ const Dashboard = () => {
 
     // Effect 1: Fetch all user's analyses for the sidebar.
     useEffect(() => {
-        if (!currentUser) return;
+        if (!user) return;
 
-        apiClient.getAnalyses(currentUser.uid) // Assumes uid is the correct parameter.
+        apiClient.getAnalyses(user.uid) // Assumes uid is the correct parameter.
             .then(result => {
                 if (result.data?.success) {
                     setAllUserAnalyses(result.data.analyses);
@@ -51,11 +51,11 @@ const Dashboard = () => {
                 showToast(error.message, "error");
             });
     // FIX: Added all external variables used in the effect to the dependency array.
-    }, [currentUser, analysisId, navigate, showToast]);
+    }, [user, analysisId, navigate, showToast]);
 
     // Effect 2: Enhanced analysis monitoring with original security checks.
     useEffect(() => {
-        if (!currentUser) {
+        if (!user) {
             showToast("Please log in to view this page.", "error");
             navigate('/');
             return;
@@ -76,7 +76,7 @@ const Dashboard = () => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 
-                if (data.userId !== currentUser.uid) {
+                if (data.userId !== user.uid) {
                     showToast("You don't have permission to view this analysis.", "error");
                     setStatus('error');
                     setMonitoringMessage('Access denied: You do not have permission to view this analysis.');
@@ -109,7 +109,7 @@ const Dashboard = () => {
 
         return () => unsubscribe();
     // FIX: Added all external variables used in the effect to the dependency array.
-    }, [analysisId, currentUser, navigate, showToast]);
+    }, [analysisId, user, navigate, showToast]);
 
     // Effect 3: Listen to topics subcollection, logic preserved.
     useEffect(() => {
@@ -170,7 +170,7 @@ const Dashboard = () => {
     }, [analysisId, showToast]);
 
     const handleSendMessage = useCallback(async (messageText) => {
-        if (!analysisId || !currentUser) {
+        if (!analysisId || !user) {
             showToast("Cannot send message: Missing context.", "error");
             return;
         }
@@ -189,7 +189,7 @@ const Dashboard = () => {
         } finally {
             setIsSendingMessage(false);
         }
-    }, [analysisId, currentUser, selectedTopic, showToast]);
+    }, [analysisId, user, selectedTopic, showToast]);
 
     // RENDER LOGIC - All original states and messages are preserved.
     if (status === 'loading' || status === 'initial') {

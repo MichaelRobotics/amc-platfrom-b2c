@@ -9,27 +9,25 @@ service cloud.firestore {
 
     // --- Rules for cross-analyzer-gcp data ---
     match /analyses/{analysisId} {
-      // Allow read/write access only if the requesting user's ID
-      // matches the 'ownerId' field in the document. Admins also have access.
-      allow read, write: if (request.auth != null && request.auth.uid == resource.data.ownerId) || isAdmin();
+      // FIX: Check for 'userId' instead of 'ownerId' to match the application code.
+      allow read, write: if (request.auth != null && request.auth.uid == resource.data.userId) || isAdmin();
 
-      // Allow a user to create a document only if they are logged in and
-      // they are setting themselves as the owner.
-      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      // FIX: Ensure the created document contains the correct 'userId' field.
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
     }
 
     match /analyses/{analysisId}/topics/{topicId} {
-        // Allow access to subcollections if the user owns the parent analysis document.
-        allow read, write: if (request.auth != null && get(/databases/$(database)/documents/analyses/$(analysisId)).data.ownerId == request.auth.uid) || isAdmin();
+        // FIX: Check for 'userId' on the parent document.
+        allow read, write: if (request.auth != null && get(/databases/$(database)/documents/analyses/$(analysisId)).data.userId == request.auth.uid) || isAdmin();
     }
     
     // --- Rules for public lead-generation data ---
     match /leads/{leadId} {
-       // Allow anyone to create a lead document. This is for the public forms.
-       allow create: if true;
-       
-       // Only allow admins to read or modify leads after they are created.
-       allow read, update, delete: if isAdmin();
+        // Allow anyone to create a lead document. This is for the public forms.
+        allow create: if true;
+        
+        // Only allow admins to read or modify leads after they are created.
+        allow read, update, delete: if isAdmin();
     }
   }
 }

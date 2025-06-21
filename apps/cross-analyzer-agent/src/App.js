@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet, useNavigate } from 'react-router-dom';
-import { getAuth, signOut } from 'firebase/auth';
+// BEFORE: import { getAuth, signOut } from 'firebase/auth';
+// AFTER: Import only the signOut function
+import { signOut } from 'firebase/auth'; 
+import { Toaster } from 'react-hot-toast';
 
 // Re-import shared components and contexts needed for this architecture
 import { AuthProvider, useAuth } from '@amc-platfrom/shared-contexts';
 import { SharedNavBar, LoginModal } from '@amc-platfrom/shared-components';
+// AFTER: Import the configured auth instance from our shared helper
+import { auth } from '@amc-platfrom/firebase-helpers';
 
 // App-specific contexts and components
 import { ToastProvider } from './contexts/ToastContext';
@@ -21,15 +26,10 @@ import MainMenuCrossAnalyzer from './components/MainMenu/MainMenuCrossAnalyzer';
 const AppWithAuthCheck = () => {
     const { user, loading } = useAuth();
 
-    // While the AuthProvider is confirming the session, show a loading indicator.
-    // This uses the context's loading state, which waits for the initial check to complete.
     if (loading) {
         return <div style={{ textAlign: 'center', paddingTop: '5rem' }}>Loading User Session...</div>;
     }
 
-    // If the definitive state after loading is "no user", redirect back to the shell.
-
-    // If we're here, the user is loaded and authenticated. Render the app's main content.
     return <AppContent />;
 };
 
@@ -56,7 +56,6 @@ const MainLayout = ({ onLoginClick, onLogout }) => {
 
 /**
  * This component contains the main UI and logic of the application.
- * It now safely assumes that a `user` object is always present because AppWithAuthCheck has verified it.
  */
 const AppContent = () => {
     const [isLoginModalOpen, setLoginModalOpen] = useState(false);
@@ -87,9 +86,8 @@ const AppContent = () => {
     };
 
     const handleLogout = async () => {
-        const auth = getAuth();
-        // After signing out, the onAuthStateChanged listener in AuthProvider will update,
-        // which will cause AppWithAuthCheck to trigger the redirect.
+        // BEFORE: const auth = getAuth();
+        // AFTER: We now use the single, correctly-configured auth instance
         await signOut(auth); 
     };
     
@@ -133,16 +131,35 @@ const AppContent = () => {
 
 /**
  * The root component for the Cross Analyzer application.
- * It now wraps the entire logic in the necessary providers.
  */
 function App() {
   return (
-    // All providers are at the top level. The gatekeeper is now inside.
     <AuthProvider>
       <ToastProvider>
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: 'var(--bg-modal)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+            },
+            success: {
+              iconTheme: {
+                primary: '#22C55E',
+                secondary: 'var(--text-primary)',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#EF4444',
+                secondary: 'var(--text-primary)',
+              },
+            },
+          }}
+        />
         <AnalysisProvider>
           <Router>
-            {/* The new gatekeeper component that uses the AuthProvider's state */}
             <AppWithAuthCheck />
           </Router>
         </AnalysisProvider>

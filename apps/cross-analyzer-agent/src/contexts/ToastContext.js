@@ -1,39 +1,36 @@
-import React, { createContext, useState, useContext, useCallback } from 'react';
-import Toast from '../components/UI/Toast';
+import React, { createContext, useContext, useCallback } from 'react';
+import toast from 'react-hot-toast';
 
-const ToastContext = createContext();
+const ToastContext = createContext(null);
 
-export const useToast = () => useContext(ToastContext);
+export const useToast = () => {
+  const context = useContext(ToastContext);
+  if (!context) {
+    throw new Error('useToast must be used within a ToastProvider');
+  }
+  return context;
+};
 
 export const ToastProvider = ({ children }) => {
-  const [toasts, setToasts] = useState([]);
-
-  const showToast = useCallback((message, type = 'info', duration = 5000) => {
-    const id = Date.now();
-    setToasts(prevToasts => [...prevToasts, { id, message, type }]);
-
-    setTimeout(() => {
-      removeToast(id);
-    }, duration);
+  const showToast = useCallback((message, type = 'info') => {
+    // This function now simply maps our type to the react-hot-toast functions.
+    switch (type) {
+      case 'success':
+        toast.success(message);
+        break;
+      case 'error':
+        toast.error(message);
+        break;
+      case 'info':
+      default:
+        toast(message); // Default toast
+        break;
+    }
   }, []);
-
-  const removeToast = (id) => {
-    setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
-  };
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="toasts-container fixed top-5 right-5 z-50">
-        {toasts.map(toast => (
-          <Toast
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            onClose={() => removeToast(toast.id)}
-          />
-        ))}
-      </div>
     </ToastContext.Provider>
   );
 };

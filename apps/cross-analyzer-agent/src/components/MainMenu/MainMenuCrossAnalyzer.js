@@ -102,7 +102,9 @@ const MainMenuCrossAnalyzer = () => {
 
         try {
             showAppStatusMessage(`Krok 1/2: Wysyłanie pliku ${originalFileName}...`, 'info');
-            const storagePath = `raw_csvs/${analysisId}/${originalFileName}`;
+            
+            // FIX: The storage path now includes the userId to match the security rules.
+            const storagePath = `raw_csvs/${userId}/${analysisId}/${originalFileName}`;
             const storageRef = ref(storage, storagePath);
             await uploadBytes(storageRef, selectedFile);
             

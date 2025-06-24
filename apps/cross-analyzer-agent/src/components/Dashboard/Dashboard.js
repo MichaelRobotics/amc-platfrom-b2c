@@ -1,276 +1,269 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, collection, setDoc, serverTimestamp } from 'firebase/firestore';
+// ========================================================================
+// Plik: src/components/Dashboard/Dashboard.js
+// Opis: Ostateczna, w pełni naprawiona wersja hybrydowego Dashboardu.
+// Łączy dynamiczny, "blokowy" interfejs z nową, uporządkowaną
+// architekturą Analiz i Tematów, z poprawioną logiką renderowania.
+// ========================================================================
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { doc, onSnapshot, collection, setDoc, serverTimestamp, query, orderBy, where } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { firestore as db } from '@amc-platfrom/firebase-helpers';
-import { useAuth } from '@amc-platfrom/shared-contexts'; // FIX: Using the correct, centralized hook.
+import { useAuth } from '@amc-platfrom/shared-contexts';
+
 import Sidebar from './Sidebar';
 import AnalysisContent from './AnalysisContent';
 import Chat from './Chat';
 import apiClient from '../../services/apiClient';
 import { useToast } from '../../contexts/ToastContext';
 import CustomMessage from '../UI/CustomMessage';
-import { AnalysisProvider } from '../../contexts/AnalysisContext';
+
+// Helper function to format backend data into displayable blocks.
+const formatBlockDataFromBackend = (backendBlockData, type = 'initial', topicName = '') => {
+    if (!backendBlockData) return null;
+    let id, questionText, findingsContent, thoughtProcessContent, newSuggestionsContent;
+
+    if (type === 'initial') {
+        id = 'initial-analysis-block';
+        questionText = backendBlockData.questionAsked || topicName || "Analiza Początkowa";
+        findingsContent = backendBlockData.initialFindings || "<p>Brak szczegółowych wniosków.</p>";
+        thoughtProcessContent = backendBlockData.thoughtProcess || "<p>Brak opisu procesu myślowego.</p>";
+        newSuggestionsContent = backendBlockData.questionSuggestions || [];
+    } else { // 'chat' type
+        id = `chat-analysis-block-${Date.now()}`;
+        questionText = backendBlockData.questionAsked || "Odpowiedź na pytanie";
+        findingsContent = backendBlockData.detailedFindings || "<p>Brak szczegółowych wniosków.</p>";
+        thoughtProcessContent = backendBlockData.specificThoughtProcess || "<p>Brak opisu procesu myślowego.</p>";
+        newSuggestionsContent = backendBlockData.followUpSuggestions || [];
+    }
+    
+    return { id, titleForBlock: questionText, question: questionText, findingsHeading: "Wynik", findingsContent, thoughtProcessContent, newSuggestionsContent };
+};
 
 const Dashboard = () => {
     const { analysisId } = useParams();
     const navigate = useNavigate();
-    const { user } = useAuth(); 
+    const { user } = useAuth();
     const { showToast } = useToast();
 
-    // All original state management is preserved.
+    // Data states
     const [analysisData, setAnalysisData] = useState(null);
-    const [status, setStatus] = useState('loading');
-    const [isSendingMessage, setIsSendingMessage] = useState(false);
-    
     const [allUserAnalyses, setAllUserAnalyses] = useState([]);
     const [activeTopics, setActiveTopics] = useState([]);
     const [selectedTopic, setSelectedTopic] = useState(null);
-    const [monitoringMessage, setMonitoringMessage] = useState('Loading...');
+    const [chatMessages, setChatMessages] = useState([]);
+    
+    // UI states (block-based logic)
+    const [analysisBlocks, setAnalysisBlocks] = useState([]);
+    const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
 
-    // Legacy state for block-based analysis backward compatibility is preserved.
-    const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState(0);
+    // Status & messaging states
+    const [status, setStatus] = useState('loading');
+    const [monitoringMessage, setMonitoringMessage] = useState('Ładowanie...');
+    const [isSendingMessage, setIsSendingMessage] = useState(false);
 
-    // Effect 1: Fetch all user's analyses for the sidebar.
+    // Effect 1: Fetch list of all user analyses for the sidebar.
     useEffect(() => {
         if (!user) return;
-
-        apiClient.getAnalyses(user.uid) // Assumes uid is the correct parameter.
-            .then(result => {
-                if (result.data?.success) {
-                    setAllUserAnalyses(result.data.analyses);
-                    if (!analysisId && result.data.analyses.length > 0) {
-                        navigate(`/app/analyzer/workspace/${result.data.analyses[0].analysisId}`);
-                    }
-                } else {
-                    throw new Error(result.data.message || "Failed to fetch analyses list.");
-                }
-            })
-            .catch(error => {
-                console.error("Error fetching analyses list:", error);
-                showToast(error.message, "error");
-            });
-    // FIX: Added all external variables used in the effect to the dependency array.
-    }, [user, analysisId, navigate, showToast]);
-
-    // Effect 2: Enhanced analysis monitoring with original security checks.
-    useEffect(() => {
-        if (!user) {
-            showToast("Please log in to view this page.", "error");
-            navigate('/');
-            return;
-        }
-
-        if (!analysisId) {
-            setStatus('initial'); // A more descriptive status than 'error'
-            setMonitoringMessage('No analysis selected. Please choose one from the sidebar.');
-            return;
-        }
-
-        setStatus('loading');
-        setMonitoringMessage('Verifying access and analysis status...');
-        
-        const docRef = doc(db, 'analyses', analysisId);
-
-        const unsubscribe = onSnapshot(docRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                
-                if (data.userId !== user.uid) {
-                    showToast("You don't have permission to view this analysis.", "error");
-                    setStatus('error');
-                    setMonitoringMessage('Access denied: You do not have permission to view this analysis.');
-                    navigate('/');
-                    return;
-                }
-                
-                setAnalysisData({ id: docSnap.id, ...data });
-                const currentStatus = data.status || 'completed';
-                setStatus(currentStatus);
-                
-                if (currentStatus.startsWith('error')) {
-                    setMonitoringMessage(`Processing error: ${data.errorMessage || 'Unknown error'}`);
-                } else if (currentStatus !== 'ready_for_topic_analysis' && currentStatus !== 'completed') {
-                    setMonitoringMessage(`Status: ${currentStatus.replace(/_/g, ' ')}...`);
-                } else {
-                    setMonitoringMessage('');
-                }
-            } else {
-                showToast("Analysis not found.", "error");
-                setStatus('error');
-                setMonitoringMessage('Analysis not found');
+        const q = query(collection(db, 'analyses'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const analyses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setAllUserAnalyses(analyses);
+            if (!analysisId && analyses.length > 0) {
+                navigate(`/app/analyzer/workspace/${analyses[0].id}`);
+            } else if (!analysisId && analyses.length === 0) {
+                 setStatus('no_analyses');
+                 setMonitoringMessage('Nie masz jeszcze żadnych analiz. Zacznij od dodania pliku!');
             }
         }, (error) => {
-            console.error("Error fetching analysis:", error);
-            showToast("Error fetching analysis.", "error");
             setStatus('error');
-            setMonitoringMessage('Server error while loading analysis');
+            setMonitoringMessage('Błąd serwera podczas ładowania listy analiz.');
+            showToast(`Błąd ładowania listy analiz: ${error.message}`, 'error');
+        });
+        return () => unsubscribe();
+    }, [user, analysisId, navigate, showToast]);
+
+    // Effect 2: Monitor the main analysis document.
+    useEffect(() => {
+        if (!user || !analysisId) {
+            if (!user) navigate('/');
+            return;
+        };
+        const docRef = doc(db, 'analyses', analysisId);
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists() && docSnap.data().userId === user.uid) {
+                const data = { id: docSnap.id, ...docSnap.data() };
+                setAnalysisData(data);
+                const currentStatus = data.status || 'completed';
+                setStatus(currentStatus);
+                if (currentStatus !== 'ready_for_topic_analysis' && currentStatus !== 'completed' && !currentStatus.startsWith('error')) {
+                    setMonitoringMessage(`Twoja analiza jest przetwarzana... Status: ${currentStatus.replace(/_/g, ' ')}`);
+                } else if(currentStatus.startsWith('error')) {
+                    setMonitoringMessage(`Wystąpił błąd: ${data.errorMessage || 'Nieznany błąd przetwarzania'}`);
+                }
+            } else {
+                setStatus('error');
+                setMonitoringMessage('Analiza nie znaleziona lub brak dostępu.');
+            }
+        });
+        return () => unsubscribe();
+    }, [analysisId, user, navigate]);
+
+    // Effect 3: Monitor topics for the active analysis.
+    useEffect(() => {
+        if (!analysisId) return;
+        const topicsRef = collection(db, 'analyses', analysisId, 'topics');
+        const q = query(topicsRef, orderBy('createdAt', 'asc'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const topicsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            setActiveTopics(topicsData);
+            
+            const currentSelectionStillExists = selectedTopic && topicsData.some(t => t.id === selectedTopic.id);
+            if (!currentSelectionStillExists && topicsData.length > 0) {
+                setSelectedTopic(topicsData[0]);
+            }
+        }, (error) => {
+            showToast("Nie udało się załadować tematów.", "error");
+        });
+        return () => unsubscribe();
+    }, [analysisId, selectedTopic]);
+
+    // Effect 4: CORE LOGIC - Build Blocks & Chat from the selected topic's history.
+    useEffect(() => {
+        if (!selectedTopic || !analysisId) {
+            setAnalysisBlocks([]);
+            setChatMessages([]);
+            return;
+        }
+
+        const chatHistoryRef = collection(db, 'analyses', analysisId, 'topics', selectedTopic.id, 'chatHistory');
+        const q = query(chatHistoryRef, orderBy('timestamp', 'asc'));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const newBlocks = [];
+            let newChatMessages = [];
+
+            if (selectedTopic.initialAnalysisResult) {
+                newBlocks.push(formatBlockDataFromBackend(selectedTopic.initialAnalysisResult, 'initial', selectedTopic.topicDisplayName));
+            }
+
+            const chatDocs = snapshot.docs;
+            newChatMessages = chatDocs.map(doc => ({ sender: doc.data().role === 'user' ? 'user' : 'ai', text: doc.data().parts[0].text, id: doc.id }));
+
+            const modelMessagesWithBlocks = chatDocs.filter(doc => doc.data().role === 'model' && doc.data().detailedAnalysisBlock);
+            modelMessagesWithBlocks.forEach(doc => {
+                newBlocks.push(formatBlockDataFromBackend(doc.data().detailedAnalysisBlock, 'chat'));
+            });
+            
+            const prevBlockCount = analysisBlocks.length;
+            setAnalysisBlocks(newBlocks);
+            setChatMessages(newChatMessages);
+
+            if (prevBlockCount < newBlocks.length && newBlocks.length > 0) {
+                 setCurrentBlockIndex(newBlocks.length - 1);
+            } else if (newBlocks.length > 0 && currentBlockIndex >= newBlocks.length) {
+                setCurrentBlockIndex(newBlocks.length - 1);
+            }
+
+        }, (error) => {
+             showToast("Błąd ładowania historii czatu.", "error");
         });
 
         return () => unsubscribe();
-    // FIX: Added all external variables used in the effect to the dependency array.
-    }, [analysisId, user, navigate, showToast]);
+    }, [selectedTopic, analysisId, showToast]);
 
-    // Effect 3: Listen to topics subcollection, logic preserved.
-    useEffect(() => {
-        if (!analysisId || (status !== 'ready_for_topic_analysis' && status !== 'completed')) {
-            setActiveTopics([]);
-            setSelectedTopic(null);
-            return;
-        }
-
-        const topicsCollectionRef = collection(db, "analyses", analysisId, "topics");
-        const unsubTopics = onSnapshot(topicsCollectionRef, (snapshot) => {
-            const topicsData = snapshot.docs.map(t => ({ id: t.id, ...t.data() }));
-            setActiveTopics(topicsData);
-            
-            const currentTopicExists = selectedTopic && topicsData.some(t => t.id === selectedTopic.id);
-            if (!currentTopicExists && topicsData.length > 0) {
-                setSelectedTopic(topicsData[0]);
-            } else if (topicsData.length === 0) {
-                setSelectedTopic(null);
-            }
-        });
-
-        return () => unsubTopics();
-    // FIX: Added all external variables used in the effect to the dependency array.
-    }, [analysisId, status, selectedTopic]);
-
-    // useMemo and useCallback hooks are preserved to maintain performance.
-    const analysisBlocks = useMemo(() => {
-        if (!analysisData || !analysisData.blocks) return [];
-        return analysisData.blocks.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-    }, [analysisData]);
-
-    const chatMessages = useMemo(() => {
-        if (!analysisData || !analysisData.chatHistory) return [];
-        return analysisData.chatHistory.sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
-    }, [analysisData]);
 
     const handleTopicSubmit = useCallback(async (topicName) => {
-        if (!topicName.trim() || !analysisId) {
-            showToast("Topic name cannot be empty.", "error");
-            return;
-        }
-        
+        if (!topicName.trim() || !analysisId) return;
         const topicId = uuidv4();
         const topicDocRef = doc(db, 'analyses', analysisId, 'topics', topicId);
         try {
-            await setDoc(topicDocRef, {
-                topicDisplayName: topicName,
-                status: "submitted",
-                createdAt: serverTimestamp(),
-                lastUpdatedAt: serverTimestamp(),
-            });
-            showToast(`Topic "${topicName}" created.`, "info");
-        } catch (error) {
-            console.error("Error submitting new topic:", error);
-            showToast(`Error: ${error.message}`, "error");
+            await setDoc(topicDocRef, { topicDisplayName: topicName, status: "submitted", createdAt: serverTimestamp(), isDefault: false });
+            showToast(`Temat "${topicName}" został utworzony.`, "info");
+        } catch(error) {
+            showToast(`Błąd tworzenia tematu: ${error.message}`, "error");
         }
     }, [analysisId, showToast]);
 
     const handleSendMessage = useCallback(async (messageText) => {
-        if (!analysisId || !user) {
-            showToast("Cannot send message: Missing context.", "error");
-            return;
-        }
-        
+        if (!analysisId || !selectedTopic) return;
         setIsSendingMessage(true);
         try {
-            if (selectedTopic) {
-                await apiClient.chatOnTopic(analysisId, selectedTopic.id, messageText);
-            } else {
-                // Fallback for old chat system.
-                await apiClient.chatOnTopic(analysisId, null, messageText); // Assuming API handles null topicId
-            }
+            await apiClient.chatOnTopic({ analysisId, topicId: selectedTopic.id, messageText });
         } catch (error) {
-            console.error("Error sending message:", error);
-            showToast(`Error: ${error.message}`, "error");
+            showToast(`Błąd odpowiedzi AI: ${error.message}`, "error");
         } finally {
             setIsSendingMessage(false);
         }
-    }, [analysisId, user, selectedTopic, showToast]);
-
-    // RENDER LOGIC - All original states and messages are preserved.
-    if (status === 'loading' || status === 'initial') {
-        return <CustomMessage message={monitoringMessage} />;
-    }
-
-    if (status === 'error') {
+    }, [analysisId, selectedTopic, showToast]);
+    
+    // Main render logic function to prevent empty screen
+    const renderContent = () => {
+        if (status === 'loading' || status === 'no_analyses') {
+            return <CustomMessage message={monitoringMessage} type="info"/>;
+        }
+        if (status.startsWith('error')) {
+            return <CustomMessage message={monitoringMessage} type="error" />;
+        }
+        if (status !== 'ready_for_topic_analysis' && status !== 'completed') {
+            return <CustomMessage message={monitoringMessage} />;
+        }
+        
+        if (!selectedTopic) {
+            return <CustomMessage message="Wybierz temat z listy lub utwórz nowy, aby rozpocząć analizę." type="info" />;
+        }
+        
         return (
-            <div className="flex flex-col justify-center items-center min-h-screen text-white">
-                <CustomMessage message={monitoringMessage} type="error" />
-                <Link to="/" className="text-blue-400 hover:underline mt-4">Go to Welcome Page</Link>
-            </div>
+            <>
+                <div className="title-and-navigation-container">
+                    <h1 className="text-2xl md:text-3xl font-bold text-white">
+                        {analysisBlocks[currentBlockIndex]?.titleForBlock || selectedTopic?.topicDisplayName || "Analiza"}
+                    </h1>
+                    {analysisBlocks.length > 1 && (
+                        <div className="analysis-navigation-arrows">
+                            <button className="nav-arrow" onClick={() => setCurrentBlockIndex(prev => Math.max(0, prev - 1))} disabled={currentBlockIndex === 0}>&lt;</button>
+                            <button className="nav-arrow" onClick={() => setCurrentBlockIndex(prev => Math.min(analysisBlocks.length - 1, prev + 1))} disabled={currentBlockIndex >= analysisBlocks.length - 1}>&gt;</button>
+                        </div>
+                    )}
+                </div>
+                
+                {analysisBlocks.length > 0 ? (
+                     <AnalysisContent blocks={analysisBlocks} currentIndex={currentBlockIndex} />
+                ) : (
+                    <CustomMessage message="Oczekiwanie na pierwszą analizę dla tego tematu..." type="info" />
+                )}
+
+                <Chat
+                    key={selectedTopic.id}
+                    messages={chatMessages}
+                    onSendMessage={handleSendMessage}
+                    isSending={isSendingMessage}
+                />
+            </>
         );
     }
-    
-    if (status === 'processing' || status === 'preprocessing_data' || status === 'processing_started') {
-        return <CustomMessage message={`Your analysis is being processed... Status: ${status.replace(/_/g, ' ')}`} />;
-    }
-
-    // The original render functions are preserved to handle all UI states.
-    const renderMainContent = () => {
-        if (status === 'ready_for_topic_analysis' || status === 'completed') {
-            if (selectedTopic) {
-                return <AnalysisContent activeTopic={selectedTopic} analysisDetails={analysisData} />;
-            } else if (activeTopics.length === 0) {
-                return <CustomMessage message="Create a new topic to start analysis" type="info" />;
-            } else {
-                return <CustomMessage message="Select a topic from the sidebar" type="info" />;
-            }
-        }
-        if (analysisBlocks.length > 0) {
-            return <AnalysisContent blocks={analysisBlocks} currentIndex={currentAnalysisIndex} />;
-        }
-        return <div className="analysis-content-area text-center p-8 text-gray-400">No analysis content available yet.</div>;
-    };
-
-    const renderChat = () => {
-        if (selectedTopic) {
-            return <Chat key={selectedTopic.id} analysisId={analysisId} topicId={selectedTopic.id} isSending={isSendingMessage} onSendMessage={handleSendMessage} />;
-        } else if (chatMessages.length > 0) {
-            return <Chat messages={chatMessages} onSendMessage={handleSendMessage} isSending={isSendingMessage} />;
-        } else {
-            return <CustomMessage message="No chat available. Create or select a topic to start chatting." />;
-        }
-    };
 
     return (
-        <AnalysisProvider analysisDataInitial={analysisData}>
-            <div className="flex h-screen bg-gray-100 font-sans">
-                <Sidebar
-                    activeTopic={selectedTopic?.topicDisplayName || analysisData?.name || 'Analysis'}
-                    onNavigateToLanding={() => navigate('/')}
-                    userAnalyses={allUserAnalyses}
-                    activeAnalysisId={analysisId}
-                    onSelectAnalysis={(id) => navigate(`/app/analyzer/workspace/${id}`)}
-                    topics={activeTopics}
-                    activeTopicId={selectedTopic?.id}
-                    onSelectTopic={setSelectedTopic}
-                    onTopicSubmit={handleTopicSubmit}
-                    isReadyForTopic={status === 'ready_for_topic_analysis' || status === 'completed'}
-                />
-                
-                <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
-                    <div className="main-content-bg p-6 md:p-8">
-                        <div className="title-and-navigation-container">
-                            <h1 id="main-analysis-title-react" className="text-2xl md:text-3xl font-bold text-white">
-                                {selectedTopic?.topicDisplayName || analysisData?.name || "Analysis"}
-                            </h1>
-                            {analysisBlocks.length > 1 && !selectedTopic && (
-                                <div className="analysis-navigation-arrows">
-                                    <button className="nav-arrow" onClick={() => setCurrentAnalysisIndex(prev => Math.max(0, prev - 1))} disabled={currentAnalysisIndex === 0}>&lt;</button>
-                                    <button className="nav-arrow" onClick={() => setCurrentAnalysisIndex(prev => Math.min(analysisBlocks.length - 1, prev + 1))} disabled={currentAnalysisIndex >= analysisBlocks.length - 1}>&gt;</button>
-                                </div>
-                            )}
-                        </div>
-                        {renderMainContent()}
-                        {renderChat()}
-                    </div>
-                </main>
-            </div>
-        </AnalysisProvider>
+        <div className="flex h-screen bg-gray-900 text-white font-sans">
+            <Sidebar
+                userAnalyses={allUserAnalyses}
+                activeAnalysisId={analysisId}
+                onSelectAnalysis={(id) => navigate(`/app/analyzer/workspace/${id}`)}
+                topics={activeTopics}
+                activeTopicId={selectedTopic?.id}
+                onSelectTopic={setSelectedTopic}
+                onTopicSubmit={handleTopicSubmit}
+                // Corrected navigation path
+                onNavigateToLanding={() => navigate('/app/analyzer')}
+                isReadyForTopic={status === 'ready_for_topic_analysis' || status === 'completed'}
+            />
+            
+            <main className="flex-1 flex flex-col overflow-hidden">
+                <div className="main-content-bg flex-grow overflow-y-auto p-6 md:p-8">
+                    {renderContent()}
+                </div>
+            </main>
+        </div>
     );
 };
 

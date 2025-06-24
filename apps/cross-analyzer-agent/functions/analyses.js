@@ -1,29 +1,30 @@
 /**
  * @fileoverview Secure handler to fetch a list of analyses for the authenticated user.
- * FULLY REFACTORED FOR SECURITY:
- * - Converted from an insecure HTTP onRequest function to a secure onCall function.
+ * FULLY REFACTORED FOR SECURITY AND V2 COMPATIBILITY:
+ * - Uses the v2 onCall function signature.
  * - Requires that the user be authenticated to call it.
  * - The Firestore query now filters analyses to only those owned by the caller.
  */
 
-const functions = require('firebase-functions');
+// We don't need the v1 'functions' import anymore.
+const { HttpsError } = require("firebase-functions/v2/https");
 const { firestore } = require("./_lib/firebaseAdmin");
 
 /**
- * Handles a secure, callable request to fetch the user's analysis documents.
- * @param {object} data The data passed from the client (expected to be empty).
- * @param {object} context The context of the call, containing auth information.
+ * Handles a secure, callable request to fetch the user's analysis documents (v2 signature).
+ * @param {object} request The request object from the client.
+ * @param {object} request.auth The authentication context of the user.
  * @returns {Promise<object>} A promise that resolves with the user's list of analyses.
  */
-async function getAnalysesListHandler(data, context) {
+async function getAnalysesListHandler(request) {
     // 1. Authentication Check: Ensure the user is logged in.
-    if (!context.auth) {
-        throw new functions.https.HttpsError(
+    if (!request.auth) {
+        throw new HttpsError(
             'unauthenticated',
             'The function must be called while authenticated.'
         );
     }
-    const uid = context.auth.uid;
+    const uid = request.auth.uid;
 
     try {
         console.log(`[AUTH] User ${uid} is fetching their analyses list.`);
@@ -63,8 +64,8 @@ async function getAnalysesListHandler(data, context) {
     } catch (error) {
         console.error(`Error fetching analyses list for user ${uid}:`, error);
         // Throw a generic error to the client to avoid leaking implementation details.
-        throw new functions.https.HttpsError('internal', 'An internal server error occurred while fetching your analyses.');
+        throw new HttpsError('internal', 'An internal server error occurred while fetching your analyses.');
     }
 }
 
-module.exports = getAnalysesListHandler;
+module.exports = { getAnalysesListHandler };

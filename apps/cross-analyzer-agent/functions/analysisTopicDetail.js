@@ -1,34 +1,35 @@
 /**
  * @fileoverview Secure handler to fetch details for a specific analysis topic.
- * FULLY REFACTORED FOR SECURITY:
- * - Converted from an insecure HTTP onRequest function to a secure onCall function.
+ * FULLY REFACTORED FOR SECURITY AND V2 COMPATIBILITY:
+ * - Uses the v2 onCall function signature.
  * - Requires that the user be authenticated to call it.
  * - Performs an authorization check to ensure the user owns the analysis
  * before returning any data.
  */
 
-const functions = require('firebase-functions');
+const { HttpsError } = require("firebase-functions/v2/https");
 const { firestore } = require("./_lib/firebaseAdmin");
 
 /**
- * Handles a secure, callable request to fetch details for a specific topic.
- * @param {object} data The data passed from the client, containing { analysisId, topicId }.
- * @param {object} context The context of the call, containing auth information.
+ * Handles a secure, callable request to fetch details for a specific topic (v2 signature).
+ * @param {object} request The request object from the client.
+ * @param {object} request.auth The authentication context of the user.
+ * @param {object} request.data The data passed from the client, containing { analysisId, topicId }.
  * @returns {Promise<object>} A promise that resolves with the topic details and chat history.
  */
-async function getAnalysisTopicDetailHandler(data, context) {
+async function getAnalysisTopicDetailHandler(request) {
     // 1. Authentication Check: Ensure the user is logged in.
-    if (!context.auth) {
-        throw new functions.https.HttpsError(
+    if (!request.auth) {
+        throw new HttpsError(
             'unauthenticated',
             'The function must be called while authenticated.'
         );
     }
-    const uid = context.auth.uid;
-    const { analysisId, topicId } = data;
+    const uid = request.auth.uid;
+    const { analysisId, topicId } = request.data;
 
     if (!analysisId || !topicId) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
             'invalid-argument',
             'The function must be called with both "analysisId" and "topicId".'
         );
@@ -43,12 +44,12 @@ async function getAnalysisTopicDetailHandler(data, context) {
         const analysisDoc = await analysisDocRef.get();
 
         if (!analysisDoc.exists) {
-            throw new functions.https.HttpsError('not-found', `Analysis with ID ${analysisId} not found.`);
+            throw new HttpsError('not-found', `Analysis with ID ${analysisId} not found.`);
         }
 
         if (analysisDoc.data().userId !== uid) {
             console.error(`[AUTH-FAIL] User ${uid} attempted to access analysis ${analysisId} owned by ${analysisDoc.data().userId}.`);
-            throw new functions.https.HttpsError(
+            throw new HttpsError(
                 'permission-denied',
                 'You do not have permission to access this analysis.'
             );
@@ -60,7 +61,7 @@ async function getAnalysisTopicDetailHandler(data, context) {
         const topicDoc = await topicDocRef.get();
 
         if (!topicDoc.exists) {
-            throw new functions.https.HttpsError('not-found', 'The requested topic does not exist in this analysis.');
+            throw new HttpsError('not-found', 'The requested topic does not exist in this analysis.');
         }
 
         const topicData = topicDoc.data();
@@ -80,11 +81,11 @@ async function getAnalysisTopicDetailHandler(data, context) {
     } catch (error) {
         console.error(`Error fetching topic details for user ${uid}:`, error);
         // If it's already an HttpsError, rethrow it. Otherwise, wrap it.
-        if (error instanceof functions.https.HttpsError) {
+        if (error instanceof HttpsError) {
             throw error;
         }
-        throw new functions.https.HttpsError('internal', 'An internal server error occurred while fetching topic details.');
+        throw new HttpsError('internal', 'An internal server error occurred while fetching topic details.');
     }
 }
 
-module.exports = getAnalysisTopicDetailHandler;
+module.exports = { getAnalysisTopicDetailHandler };

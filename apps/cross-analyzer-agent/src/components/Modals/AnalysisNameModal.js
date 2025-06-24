@@ -9,11 +9,13 @@ const AnalysisNameModal = ({ isOpen, onClose, onSubmit, initialName = '', showMe
 
     useEffect(() => {
         if (isOpen) {
-            setAnalysisName(initialName); // Reset or set initial name when modal opens
-            setNameError(''); // Clear any previous errors
-            if (inputRef.current) {
-                inputRef.current.focus();
-            }
+            setAnalysisName(initialName);
+            setNameError('');
+            setTimeout(() => {
+                if (inputRef.current) {
+                    inputRef.current.focus();
+                }
+            }, 100);
         }
     }, [isOpen, initialName]);
     
@@ -22,11 +24,16 @@ const AnalysisNameModal = ({ isOpen, onClose, onSubmit, initialName = '', showMe
             return 'Proszę podać nazwę analizy.';
         }
         
-        // Check if name already exists (case-insensitive)
         const normalizedNewName = name.trim().toLowerCase();
-        const isDuplicate = userCreatedAnalyses.some(
-            analysis => analysis.name.toLowerCase() === normalizedNewName
+        
+        // --- OSTATECZNA POPRAWKA JEST TUTAJ ---
+        // Sprawdzamy, czy `userCreatedAnalyses` istnieje.
+        // Następnie dla każdego elementu `analysis` sprawdzamy, czy `analysis.analysisName` istnieje,
+        // ZANIM wywołamy na nim .toLowerCase().
+        const isDuplicate = userCreatedAnalyses && userCreatedAnalyses.some(
+            analysis => analysis.analysisName && analysis.analysisName.toLowerCase() === normalizedNewName
         );
+        // --- KONIEC POPRAWKI ---
         
         if (isDuplicate) {
             return 'Analiza o tej nazwie już istnieje. Proszę wybrać inną nazwę.';
@@ -38,14 +45,18 @@ const AnalysisNameModal = ({ isOpen, onClose, onSubmit, initialName = '', showMe
     const handleNameChange = (e) => {
         const newName = e.target.value;
         setAnalysisName(newName);
-        setNameError(validateAnalysisName(newName));
+        // Walidacja na bieżąco jest dobra, ale błąd pojawia się, gdy userCreatedAnalyses nie jest jeszcze gotowe
+        // lub zawiera niepoprawne dane. Sprawdzanie przy submicie jest bezpieczniejsze.
+        if (nameError) {
+            setNameError(validateAnalysisName(newName));
+        }
     };
     
     const handleSubmit = () => {
         const error = validateAnalysisName(analysisName);
         if (error) {
             setNameError(error);
-            if(showMessage) showMessage(error);
+            if(showMessage) showMessage(error, 'error');
             return;
         }
         onSubmit(analysisName.trim());
@@ -57,7 +68,7 @@ const AnalysisNameModal = ({ isOpen, onClose, onSubmit, initialName = '', showMe
     if (!isOpen) return null;
 
     return (
-        <div className="modal active"> {/* Classes defined in src/index.css */}
+        <div className="modal active">
             <div className="modal-content">
                 <h2 className="modal-title">Nazwa Analizy</h2>
                 <p className="text-sm text-gray-400 mb-3">Podaj nazwę dla tej analizy, aby łatwiej ją później zidentyfikować.</p>
@@ -67,6 +78,13 @@ const AnalysisNameModal = ({ isOpen, onClose, onSubmit, initialName = '', showMe
                         type="text" 
                         value={analysisName}
                         onChange={handleNameChange}
+                        onBlur={() => setNameError(validateAnalysisName(analysisName))} // Waliduj po utracie focusu
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSubmit();
+                            }
+                        }}
                         className={`modal-input ${nameError ? 'border-red-500' : ''}`}
                         placeholder="Np. Analiza sprzedaży Q1"
                     />
@@ -79,7 +97,7 @@ const AnalysisNameModal = ({ isOpen, onClose, onSubmit, initialName = '', showMe
                     <button 
                         onClick={handleSubmit} 
                         className="modal-button modal-button-primary"
-                        disabled={!!nameError}
+                        disabled={!analysisName.trim()}
                     >
                         Rozpocznij Analizę
                     </button>

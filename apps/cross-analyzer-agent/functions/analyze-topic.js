@@ -1,33 +1,51 @@
 /**
- * @fileoverview A background Cloud Function triggered by the creation of a topic
- * document in Firestore. This function contains the core topic analysis logic
- * from the original `initiate-topic-analysis.js`.
+ * @fileoverview A background Cloud Function triggered by the update of a topic
+ * document in Firestore. This function contains the core topic analysis logic.
+ * NOW FULLY COMPATIBLE WITH v2 FUNCTIONS.
  *
  * ALL DATA MANIPULATION ALGORITHMS AND PROMPTS ARE PRESERVED 100% FROM THE ORIGINAL.
- *
- * NEW: Now creates a user-facing notification upon successful completion.
  */
 
-const functions = require('firebase-functions');
+// We don't need the v1 'functions' import anymore.
 const { admin, firestore } = require("./_lib/firebaseAdmin");
 const { getGenerativeModel, cleanPotentialJsonMarkdown } = require("./_lib/geminiClient");
 
 /**
- * Background function handler triggered by Firestore document creation.
- * @param {functions.firestore.QueryDocumentSnapshot} snap The created document snapshot.
- * @param {functions.EventContext} context The event context.
+ * Background function handler triggered by a Firestore document update (v2 signature).
+ * @param {object} event The CloudEvent object containing all event data.
+ * @param {object} event.data A Change object containing the data before and after the event.
+ * @param {object} event.params The wildcard parameters from the document path.
  */
-async function analyzeTopicHandler(snap, context) {
-    const topicData = snap.data();
-    const { analysisId, topicId } = context.params;
-    const topicDocRef = snap.ref;
+async function analyzeTopicHandler(event) {
+    // --- CORRECTED v2 PARAMETER HANDLING ---
+    // Get the wildcard parameters from the event object
+    const { analysisId, topicId } = event.params;
+    
+    // The snapshot of the document *after* the change
+    const snapAfter = event.data.after;
+    if (!snapAfter) {
+        console.log(`[ANALYZE_TOPIC] Document ${topicId} was deleted. Exiting.`);
+        return;
+    }
+    
+    const topicData = snapAfter.data();
+    const topicDocRef = snapAfter.ref;
 
-    // The frontend creates the doc with a display name and an 'analyzing' status
+    // We only want to run the analysis when the topic is first created/submitted.
+    if (topicData.status !== 'submitted') {
+        console.log(`[ANALYZE_TOPIC] Topic ${topicId} status is '${topicData.status}', not 'submitted'. Skipping analysis.`);
+        return;
+    }
+    
     const { topicDisplayName } = topicData;
 
     console.log(`[ANALYZE_TOPIC] Triggered for analysisId: ${analysisId}, topicId: ${topicId}`);
 
     try {
+        // --- ALL SUBSEQUENT LOGIC IS PRESERVED ---
+        // Switch to an 'analyzing' status to prevent re-triggering.
+        await topicDocRef.update({ status: "analyzing" });
+
         const analysisDocRef = firestore().collection('analyses').doc(analysisId);
         const analysisDoc = await analysisDocRef.get();
 
@@ -37,7 +55,6 @@ async function analyzeTopicHandler(snap, context) {
         const analysisData = analysisDoc.data();
         console.log(`[ANALYZE_TOPIC] Analysis document for ${analysisId} found.`);
 
-        // --- ORIGINAL DATA AND CONTEXT PREPARATION (PRESERVED 100%) ---
         const {
             dataSummaryForPrompts = {},
             dataNatureDescription = "Not specified",
@@ -69,7 +86,6 @@ ${JSON.stringify(dataSummaryForPrompts, null, 2)}
 `;
         }
         
-        // --- ORIGINAL MAIN GEMINI PROMPT (PRESERVED 100%) ---
         const initialPrompt = `
 Jesteś Agentem AI do Analizy Danych.
 Twoim zadaniem jest pomóc mi przeprowadzić analizę krzyżową i odkryć cenne spostrzeżenia związane z tematem: "${topicDisplayName}".
@@ -92,7 +108,6 @@ Styl Interakcji: Bądź analityczny, wnikliwy i proaktywny.
 
         console.log(`[ANALYZE_TOPIC] Calling Gemini for initial analysis of topic: ${topicDisplayName}`);
         
-        // CORRECTED: Using the new model and proper configuration
         const model = getGenerativeModel("gemini-2.5-flash-preview-05-20");
         const result = await model.generateContent(initialPrompt, {
             temperature: 0.7,
@@ -102,12 +117,10 @@ Styl Interakcji: Bądź analityczny, wnikliwy i proaktywny.
             candidateCount: 1
         });
 
-        // --- CORRECTED GEMINI RESPONSE HANDLING ---
         if (!result || !result.response) {
             throw new Error('Gemini API returned an invalid or empty response structure for topic analysis.');
         }
 
-        // Get the response text using the correct method
         const responseText = result.response.text();
         const cleanedResponseText = cleanPotentialJsonMarkdown(responseText);
         
@@ -121,12 +134,10 @@ Styl Interakcji: Bądź analityczny, wnikliwy i proaktywny.
         
         console.log('[ANALYZE_TOPIC] Initial topic analysis parsed successfully.');
 
-        // --- ORIGINAL VALIDATION OF RESULT STRUCTURE (PRESERVED 100%) ---
         if (!initialAnalysisResult || !initialAnalysisResult.conciseInitialSummary || !initialAnalysisResult.initialFindings || !initialAnalysisResult.thoughtProcess || !initialAnalysisResult.questionSuggestions) {
              throw new Error("AI response for initial analysis was incomplete or missing required fields.");
         }
 
-        // --- ORIGINAL DATA STORAGE LOGIC (PRESERVED 100%) ---
         const finalTimestamp = admin.firestore.FieldValue.serverTimestamp();
         await topicDocRef.update({
             initialAnalysisResult: initialAnalysisResult,
@@ -143,17 +154,15 @@ Styl Interakcji: Bądź analityczny, wnikliwy i proaktywny.
         };
         await chatMessagesRef.add(firstMessageData);
 
-        // Update the parent analysis doc's timestamp
         await analysisDocRef.update({ lastUpdatedAt: finalTimestamp });
 
-        // --- NEW: CREATE A NOTIFICATION FOR THE USER ---
         const notificationsRef = firestore().collection('notifications');
         await notificationsRef.add({
             message: `Analiza "${topicDisplayName}" jest gotowa do przeglądu.`,
             analysisId: analysisId,
             topicId: topicId,
             createdAt: finalTimestamp,
-            read: false, // The frontend can use this to hide notifications that have been seen
+            read: false,
         });
         console.log(`[ANALYZE_TOPIC] Notification created for analysis ${analysisId}.`);
 
@@ -171,4 +180,5 @@ Styl Interakcji: Bądź analityczny, wnikliwy i proaktywny.
     }
 }
 
-module.exports = analyzeTopicHandler;
+// Export the v2 compatible handler
+module.exports = { analyzeTopicHandler };

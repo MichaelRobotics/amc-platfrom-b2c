@@ -4,21 +4,68 @@
  * making them available for deployment.
  */
 
-// Import function handlers
+// v2 Imports: Import triggers from their specific modules
+const { setGlobalOptions } = require('firebase-functions/v2');
+const { onCall, onRequest } = require('firebase-functions/v2/https');
+const { onObjectFinalized } = require('firebase-functions/v2/storage');
+const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { logger } = require("firebase-functions");
+
+// --- GLOBAL FUNCTION CONFIGURATION ---
+// Set a baseline configuration for all functions in this file.
+setGlobalOptions({
+    // --- Location ---
+    // Set the region to Warsaw, Poland (europe-central2). This is ideal for your
+    // location to ensure the lowest possible latency for your services.
+    region: 'us-central1',
+
+    // --- Resource Allocation ---
+    // A good default memory allocation. Can be overridden for specific functions.
+    memory: '512MiB',
+    // Default CPU. 1 is standard for v2. Can be increased for CPU-intensive tasks.
+    cpu: 1,
+    // Default timeout. 2 minutes is a safe baseline for most operations.
+    timeoutSeconds: 120,
+
+    // --- Scaling ---
+    // Allow functions to scale down to zero to minimize costs when not in use.
+    minInstances: 0,
+});
+
+
+// --- IMPORT FUNCTION HANDLERS ---
 const { requestAnalysisHandler } = require('./request-analysis');
 const { processUploadedCsvHandler } = require('./process-uploaded-csv');
 const { getAnalysesListHandler } = require('./analyses');
 const { getAnalysisTopicDetailHandler } = require('./analysisTopicDetail');
 const { chatOnTopicHandler } = require('./chat-on-topic');
+const { analyzeTopicHandler } = require('./analyze-topic');
+
 
 // --- EXPORTS FOR DEPLOYMENT ---
+// All functions exported below will automatically inherit the global settings.
 
-// Export HTTP-triggered functions for secure client-side invocation
-exports.requestAnalysis = requestAnalysisHandler;
-exports.getAnalysesList = getAnalysesListHandler;
-exports.getAnalysisTopicDetail = getAnalysisTopicDetailHandler;
-exports.chatOnTopic = chatOnTopicHandler;
+// Export callable functions using the v2 'onCall' trigger
+exports.requestAnalysis = onCall(requestAnalysisHandler);
+exports.getAnalysesList = onCall(getAnalysesListHandler);
+exports.getAnalysisTopicDetail = onCall(getAnalysisTopicDetailHandler);
 
+// This callable function requires the Gemini API key
+exports.chatOnTopic = onCall({ secrets: ["GEMINI_API_KEY"] }, chatOnTopicHandler);
 
-// Export background-triggered functions (e.g., from Cloud Storage)
-exports.processUploadedCsv = processUploadedCsvHandler;
+// Export the storage function. We override its memory and add the required secret.
+const BUCKET_NAME = 'amc-platform-b2c.firebasestorage.app'; // Verify this is your actual bucket name
+exports.processUploadedCsv = onObjectFinalized({
+    bucket: BUCKET_NAME,
+    memory: '1GiB',                 // Override global setting
+    secrets: ["GEMINI_API_KEY"],    // Grant access to the Gemini secret
+}, processUploadedCsvHandler);
+
+// Export the Firestore-triggered function for AI analysis.
+// We override its settings for more memory/time and add the required secret.
+exports.analyzeTopic = onDocumentUpdated({
+    document: "analyses/{analysisId}/topics/{topicId}",
+    secrets: ["GEMINI_API_KEY"], // Grant access to the Gemini secret
+    timeoutSeconds: 540,         // Override: Give it 9 minutes for analysis
+    memory: '1GiB',              // Override: Give it more memory
+}, analyzeTopicHandler);

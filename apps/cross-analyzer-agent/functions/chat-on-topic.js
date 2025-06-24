@@ -1,7 +1,9 @@
-// File: functions/chat-on-topic.js
-// Description: Refactored 'onCall' function with corrected Gemini response handling.
+/**
+ * @fileoverview Refactored 'onCall' function with corrected Gemini response handling
+ * and updated to the v2 function signature for full compatibility.
+ */
 
-const functions = require('firebase-functions');
+const { HttpsError } = require("firebase-functions/v2/https");
 const { admin, firestore } = require("./_lib/firebaseAdmin");
 const { getGenerativeModel, cleanPotentialJsonMarkdown } = require("./_lib/geminiClient");
 
@@ -25,19 +27,27 @@ function formatChatHistoryForGemini(chatHistoryDocs) {
 }
 
 /**
- * Handles a callable request for chatting about a topic with full context.
- * @param {object} data The data passed from the client: { analysisId, topicId, userMessageText }.
- * @param {object} context The context of the call (e.g., auth info).
+ * Handles a callable request for chatting about a topic with full context (v2 signature).
+ * @param {object} request The request object from the client.
+ * @param {object} request.auth The authentication context of the user.
+ * @param {object} request.data The data passed from the client: { analysisId, topicId, userMessageText }.
  * @returns {Promise<object>} A promise that resolves with the AI's chat response.
  */
-async function chatOnTopicHandler(data, context) {
-    const { analysisId, topicId, userMessageText } = data;
+async function chatOnTopicHandler(request) {
+    // 1. Authentication Check
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    // 2. Data extraction from v2 request object
+    const { analysisId, topicId, userMessageText } = request.data;
+    const uid = request.auth.uid;
 
     if (!analysisId || !topicId || !userMessageText) {
-        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with "analysisId", "topicId", and "userMessageText".');
+        throw new HttpsError('invalid-argument', 'The function must be called with "analysisId", "topicId", and "userMessageText".');
     }
     if (userMessageText.trim().length === 0) {
-        throw new functions.https.HttpsError('invalid-argument', 'User message text cannot be empty.');
+        throw new HttpsError('invalid-argument', 'User message text cannot be empty.');
     }
 
     try {
@@ -46,16 +56,18 @@ async function chatOnTopicHandler(data, context) {
         const topicDocRef = analysisDocRef.collection('topics').doc(topicId);
         const chatMessagesRef = topicDocRef.collection('chatHistory');
 
-        const [analysisDoc, topicDoc] = await Promise.all([
-            analysisDocRef.get(),
-            topicDocRef.get(),
-        ]);
-
+        // Authorization check: Ensure user owns the analysis
+        const analysisDoc = await analysisDocRef.get();
         if (!analysisDoc.exists) {
-            throw new functions.https.HttpsError('not-found', `Analysis with ID ${analysisId} not found.`);
+            throw new HttpsError('not-found', `Analysis with ID ${analysisId} not found.`);
         }
+        if (analysisDoc.data().userId !== uid) {
+            throw new HttpsError('permission-denied', 'You do not have permission to access this analysis.');
+        }
+
+        const topicDoc = await topicDocRef.get();
         if (!topicDoc.exists) {
-            throw new functions.https.HttpsError('not-found', `Topic with ID ${topicId} not found for analysis ${analysisId}.`);
+            throw new HttpsError('not-found', `Topic with ID ${topicId} not found for analysis ${analysisId}.`);
         }
 
         const {
@@ -116,8 +128,8 @@ Sformatuj swoją odpowiedź jako obiekt JSON z następującymi dokładnymi klucz
 - "conciseChatMessage": (String) Krótka, bezpośrednia odpowiedź na pytanie użytkownika, odpowiednia do wyświetlenia w interfejsie czatu. Powinien to być zwykły tekst. WAŻNE: Odpowiedź MUSI być w języku polskim.
 - "detailedAnalysisBlock": (Object) Strukturalny blok dla głównego obszaru wyświetlania, z tymi kluczami:
     - "questionAsked": (String) Pytanie użytkownika, na które odpowiadasz (tj. "${userMessageText}"). Powinien to być zwykły tekst.
-    - "detailedFindings": (String) Twoje szczegółowe ustalenia, wyjaśnienia lub analizy związane z pytaniem. Ten ciąg znaków powinien być sformatowany za pomocą tagów HTML dla akapitów (np. "<p>Ustalenie 1.</p><p>Ustalenie 2.</p>"). Kiedy odnosisz się do nazw kolumn (np. OperatorWorkload_%, TasksCompleted), NIE używaj odwrotnych apostrofów. Zamiast tego, otocz dokładną nazwę kolumny tagiem <span class="column-name-highlight"></span>. WAŻNE: Cała wartość ciągu znaków dla "detailedFindings" musi być prawidłowym ciągiem JSON. Wszelkie cudzysłowy (") w treści lub atrybutach HTML MUSZĄ być poprawnie poprzedzone znakiem ucieczki jako \\\\".
-    - "specificThoughtProcess": (String) Krótko wyjaśnij, jak doszedłeś do tych szczegółowych ustaleń. Ten ciąg znaków powinien być sformatowany jako nieuporządkowana lista HTML (np. "<ul><li>Krok pierwszy wyjaśniający \\\\"dlaczego\\\\".</li><li>Krok drugi.</li><li>Krok trzeci.</li></ul>") zawierająca dokładnie 3 punkty. Kiedy odnosisz się do nazw kolumn, użyj tagu <span class="column-name-highlight"></span>. WAŻNE: Cała wartość ciągu znaków dla "specificThoughtProcess" musi być prawidłowym ciągiem JSON. Wszelkie cudzysłowy (") w treści lub atrybutach HTML MUSZĄ być poprawnie poprzedzone znakiem ucieczki jako \\\\".
+    - "detailedFindings": (String) Twoje szczegółowe ustalenia, wyjaśnienia lub analizy związane z pytaniem. Ten ciąg znaków powinien być sformatowany za pomocą tagów HTML dla akapitów (np. "<p>Ustalenie 1.</p><p>Ustalenie 2.</p>"). Kiedy odnosisz się do nazw kolumn (np. OperatorWorkload_%, TasksCompleted), NIE używaj odwrotnych apostrofów. Zamiast tego, otocz dokładną nazwę kolumny tagiem <span class="column-name-highlight"></span>. WAŻNE: Cała wartość ciągu znaków dla "detailedFindings" musi być prawidłowym ciągiem JSON. Wszelkie cudzysłowy (") w treści lub atrybutach HTML MUSZĄ być poprawnie poprzedzone znakiem ucieczki jako \\".
+    - "specificThoughtProcess": (String) Krótko wyjaśnij, jak doszedłeś do tych szczegółowych ustaleń. Ten ciąg znaków powinien być sformatowany jako nieuporządkowana lista HTML (np. "<ul><li>Krok pierwszy wyjaśniający \\"dlaczego\\".</li><li>Krok drugi.</li><li>Krok trzeci.</li></ul>") zawierająca dokładnie 3 punkty. Kiedy odnosisz się do nazw kolumn, użyj tagu <span class="column-name-highlight"></span>. WAŻNE: Cała wartość ciągu znaków dla "specificThoughtProcess" musi być prawidłowym ciągiem JSON. Wszelkie cudzysłowy (") w treści lub atrybutach HTML MUSZĄ być poprawnie poprzedzone znakiem ucieczki jako \\".
     - "followUpSuggestions": (Array of strings) Podaj 2-3 wnikliwe pytania uzupełniające (zwykły tekst). NIE używaj odwrotnych apostrofów ani tagów span HTML dla nazw kolumn w tych sugestiach.
 
 Styl Interakcji: Bądź analityczny, wnikliwy i bezpośrednio odpowiadaj na pytanie użytkownika.
@@ -135,13 +147,11 @@ Styl Interakcji: Bądź analityczny, wnikliwy i bezpośrednio odpowiadaj na pyta
                 candidateCount: 1
             });
             
-            // --- CORRECTED RESPONSE HANDLING ---
             if (!result || !result.response) {
                 console.error('[GEMINI] Invalid or unexpected response structure for chat.');
-                throw new functions.https.HttpsError('internal', 'Gemini API returned an invalid or empty response structure for chat.');
+                throw new HttpsError('internal', 'Gemini API returned an invalid or empty response structure for chat.');
             }
 
-            // Get the response text using the correct method
             const responseText = result.response.text();
             const cleanedResponseText = cleanPotentialJsonMarkdown(responseText);
 
@@ -152,17 +162,17 @@ Styl Interakcji: Bądź analityczny, wnikliwy i bezpośrednio odpowiadaj na pyta
                 console.error("[GEMINI] Failed to parse cleaned chat response as JSON.", jsonParseError);
                 console.error("[GEMINI] Raw response text:", responseText);
                 console.error("[GEMINI] Cleaned response text:", cleanedResponseText);
-                throw new functions.https.HttpsError('internal', `The AI returned text that was not valid JSON for chat after cleaning. Parse error: ${jsonParseError.message}`);
+                throw new HttpsError('internal', `The AI returned text that was not valid JSON for chat after cleaning. Parse error: ${jsonParseError.message}`);
             }
 
         } catch (geminiError) {
             console.error(`Gemini API error during chat for topic ${topicId}:`, geminiError);
-            throw new functions.https.HttpsError('internal', `Failed to get AI response: ${geminiError.message || 'Unknown Gemini error'}`);
+            throw new HttpsError('internal', `Failed to get AI response: ${geminiError.message || 'Unknown Gemini error'}`);
         }
 
         if (!geminiResponsePayload || !geminiResponsePayload.conciseChatMessage || !geminiResponsePayload.detailedAnalysisBlock) {
             console.error("Gemini response for chat is missing required fields.", geminiResponsePayload);
-            throw new functions.https.HttpsError('internal', "AI response for chat was incomplete or malformed.");
+            throw new HttpsError('internal', "AI response for chat was incomplete or malformed.");
         }
         console.log(`Gemini chat response received and parsed for topic ${topicId}`);
 
@@ -193,12 +203,12 @@ Styl Interakcji: Bądź analityczny, wnikliwy i bezpośrednio odpowiadaj na pyta
         };
 
     } catch (error) {
-        console.error(`Error in chatOnTopicHandler (analysisId: ${data.analysisId}, topicId: ${data.topicId}):`, error);
-        if (error instanceof functions.https.HttpsError) {
+        console.error(`Error in chatOnTopicHandler (analysisId: ${request.data.analysisId}, topicId: ${request.data.topicId}):`, error);
+        if (error instanceof HttpsError) {
             throw error;
         }
-        throw new functions.https.HttpsError('internal', `Server error: ${error.message}`);
+        throw new HttpsError('internal', `Server error: ${error.message}`);
     }
 }
 
-module.exports = chatOnTopicHandler;
+module.exports = { chatOnTopicHandler };

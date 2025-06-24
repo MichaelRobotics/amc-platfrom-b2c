@@ -8,7 +8,7 @@
 const { setGlobalOptions } = require('firebase-functions/v2');
 const { onCall, onRequest } = require('firebase-functions/v2/https');
 const { onObjectFinalized } = require('firebase-functions/v2/storage');
-const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { logger } = require("firebase-functions");
 
 // --- GLOBAL FUNCTION CONFIGURATION ---
@@ -21,11 +21,11 @@ setGlobalOptions({
 
     // --- Resource Allocation ---
     // A good default memory allocation. Can be overridden for specific functions.
-    memory: '512MiB',
+    memory: '8GiB',
     // Default CPU. 1 is standard for v2. Can be increased for CPU-intensive tasks.
-    cpu: 1,
+    cpu: 2,
     // Default timeout. 2 minutes is a safe baseline for most operations.
-    timeoutSeconds: 120,
+    timeoutSeconds: 540,
 
     // --- Scaling ---
     // Allow functions to scale down to zero to minimize costs when not in use.
@@ -57,15 +57,16 @@ exports.chatOnTopic = onCall({ secrets: ["GEMINI_API_KEY"] }, chatOnTopicHandler
 const BUCKET_NAME = 'amc-platform-b2c.firebasestorage.app'; // Verify this is your actual bucket name
 exports.processUploadedCsv = onObjectFinalized({
     bucket: BUCKET_NAME,
-    memory: '1GiB',                 // Override global setting
+    memory: '8GiB',
+    timeoutSeconds: 540,                 // Override global setting
     secrets: ["GEMINI_API_KEY"],    // Grant access to the Gemini secret
 }, processUploadedCsvHandler);
 
 // Export the Firestore-triggered function for AI analysis.
 // We override its settings for more memory/time and add the required secret.
-exports.analyzeTopic = onDocumentUpdated({
+exports.analyzeTopic = onDocumentWritten({
     document: "analyses/{analysisId}/topics/{topicId}",
     secrets: ["GEMINI_API_KEY"], // Grant access to the Gemini secret
     timeoutSeconds: 540,         // Override: Give it 9 minutes for analysis
-    memory: '1GiB',              // Override: Give it more memory
+    memory: '8GiB',              // Override: Give it more memory
 }, analyzeTopicHandler);

@@ -116,14 +116,18 @@ const AppContent = () => {
             <NotificationsManager onNavigateToDashboard={handleNavigateToDashboard} />
             
             <main>
-                <Routes>
-                    <Route path="/dashboard/:analysisId" element={
-                        <Dashboard onNavigateToLanding={handleNavigateToLanding} />
-                    } />
-                    <Route element={<MainLayout onLoginClick={() => setLoginModalOpen(true)} onLogout={handleLogout} />}>
-                        <Route path="/" element={<MainMenuCrossAnalyzer onStartAnalysis={handleNavigateToDashboard} />} />
-                    </Route>
-                </Routes>
+            <Routes>
+                {/* This new route handles the generic dashboard view */}
+                <Route path="/dashboard" element={
+                    <Dashboard onNavigateToLanding={handleNavigateToLanding} />
+                } />
+                <Route path="/dashboard/:analysisId" element={
+                    <Dashboard onNavigateToLanding={handleNavigateToLanding} />
+                } />
+                <Route element={<MainLayout onLoginClick={() => setLoginModalOpen(true)} onLogout={handleLogout} />}>
+                    <Route path="/" element={<MainMenuCrossAnalyzer onStartAnalysis={handleNavigateToDashboard} />} />
+                </Route>
+            </Routes>
             </main>
         </>
     );

@@ -70,7 +70,7 @@ const Dashboard = () => {
             const analyses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setAllUserAnalyses(analyses);
             if (!analysisId && analyses.length > 0) {
-                navigate(`/app/analyzer/workspace/${analyses[0].id}`);
+                navigate(`/dashboard/${analyses[0].id}`);
             } else if (!analysisId && analyses.length === 0) {
                  setStatus('no_analyses');
                  setMonitoringMessage('Nie masz jeszcze żadnych analiz. Zacznij od dodania pliku!');
@@ -109,24 +109,42 @@ const Dashboard = () => {
         return () => unsubscribe();
     }, [analysisId, user, navigate]);
 
-    // Effect 3: Monitor topics for the active analysis.
-    useEffect(() => {
-        if (!analysisId) return;
-        const topicsRef = collection(db, 'analyses', analysisId, 'topics');
-        const q = query(topicsRef, orderBy('createdAt', 'asc'));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const topicsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-            setActiveTopics(topicsData);
-            
-            const currentSelectionStillExists = selectedTopic && topicsData.some(t => t.id === selectedTopic.id);
-            if (!currentSelectionStillExists && topicsData.length > 0) {
-                setSelectedTopic(topicsData[0]);
+// --- REPLACE IT WITH THIS CORRECTED AND MORE ROBUST VERSION ---
+useEffect(() => {
+    if (!analysisId) return;
+    const topicsRef = collection(db, 'analyses', analysisId, 'topics');
+    const q = query(topicsRef, orderBy('createdAt', 'asc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const topicsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        setActiveTopics(topicsData);
+
+        // Use a functional update to safely handle state changes inside the listener
+        setSelectedTopic(currentSelectedTopic => {
+            // If a topic was already selected...
+            if (currentSelectedTopic) {
+                // ...find its newest version in the fresh data from Firestore.
+                const updatedTopic = topicsData.find(t => t.id === currentSelectedTopic.id);
+                // Return the updated topic to refresh the state.
+                // If it was deleted, this will correctly return undefined (which becomes null below).
+                return updatedTopic || null;
             }
-        }, (error) => {
-            showToast("Nie udało się załadować tematów.", "error");
+            
+            // If no topic was selected yet and we have topics, select the first one.
+            if (topicsData.length > 0) {
+                return topicsData[0];
+            }
+
+            // Otherwise, there's no topic to select.
+            return null;
         });
-        return () => unsubscribe();
-    }, [analysisId, selectedTopic]);
+    }, (error) => {
+        showToast("Nie udało się załadować tematów.", "error");
+    });
+
+    return () => unsubscribe();
+// This dependency array ensures the listener is only reset when you change analyses.
+}, [analysisId, showToast]);
 
     // Effect 4: CORE LOGIC - Build Blocks & Chat from the selected topic's history.
     useEffect(() => {
@@ -248,13 +266,13 @@ const Dashboard = () => {
             <Sidebar
                 userAnalyses={allUserAnalyses}
                 activeAnalysisId={analysisId}
-                onSelectAnalysis={(id) => navigate(`/app/analyzer/workspace/${id}`)}
+                onSelectAnalysis={(id) => navigate(`/dashboard/${id}`)}
                 topics={activeTopics}
                 activeTopicId={selectedTopic?.id}
                 onSelectTopic={setSelectedTopic}
                 onTopicSubmit={handleTopicSubmit}
                 // Corrected navigation path
-                onNavigateToLanding={() => navigate('/app/analyzer')}
+                onNavigateToLanding={() => navigate('/')}
                 isReadyForTopic={status === 'ready_for_topic_analysis' || status === 'completed'}
             />
             

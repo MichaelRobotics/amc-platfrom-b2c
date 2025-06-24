@@ -166,11 +166,15 @@ WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysł
             candidateCount: 1
         });
         
-        if (!resultSummary || !resultSummary.response) {
-            throw new Error('Gemini API returned an invalid or empty response structure for data summary.');
+        // Corrected validation to check for candidates at the top level
+        if (!resultSummary || !resultSummary.candidates || resultSummary.candidates.length === 0 || !resultSummary.candidates[0].content || !resultSummary.candidates[0].content.parts || resultSummary.candidates[0].content.parts.length === 0) {
+            // Log the actual response from Gemini for easier debugging in the future
+            console.error('[PROCESS_CSV] Gemini returned an invalid response or was blocked. Full response:', JSON.stringify(resultSummary, null, 2));
+            throw new Error('Gemini API returned no valid candidates or content parts for the data summary.');
         }
 
-        const responseTextSummary = resultSummary.response.text();
+        // Corrected text extraction from the actual response structure
+        const responseTextSummary = resultSummary.candidates[0].content.parts[0].text;
         const cleanedResponseTextSummary = cleanPotentialJsonMarkdown(responseTextSummary);
         
         let dataSummaryForPrompts;
@@ -203,11 +207,14 @@ Opis powinien być zwięzły i informacyjny. Nie używaj formatowania HTML. Odpo
             candidateCount: 1
         });
         
-        if (!resultNature || !resultNature.response) {
-            throw new Error('Gemini API returned an invalid response for data nature description.');
+        // Corrected validation for the second API call
+        if (!resultNature || !resultNature.candidates || resultNature.candidates.length === 0 || !resultNature.candidates[0].content || !resultNature.candidates[0].content.parts || !resultNature.candidates[0].content.parts.length === 0) {
+            console.error('[PROCESS_CSV] Gemini returned an invalid response for data nature description. Full response:', JSON.stringify(resultNature, null, 2));
+            throw new Error('Gemini API returned no valid candidates or content parts for the data nature description.');
         }
-
-        const dataNatureDescriptionText = resultNature.response.text();
+        
+        // Corrected text extraction for the second API call
+        const dataNatureDescriptionText = resultNature.candidates[0].content.parts[0].text;
         console.log('[PROCESS_CSV] Data nature description generated.');
 
         const cleanedCsvString = Papa.unparse(cleanedData);

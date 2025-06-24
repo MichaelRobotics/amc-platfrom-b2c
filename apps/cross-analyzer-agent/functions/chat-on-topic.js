@@ -147,12 +147,14 @@ Styl Interakcji: Bądź analityczny, wnikliwy i bezpośrednio odpowiadaj na pyta
                 candidateCount: 1
             });
             
-            if (!result || !result.response) {
-                console.error('[GEMINI] Invalid or unexpected response structure for chat.');
-                throw new HttpsError('internal', 'Gemini API returned an invalid or empty response structure for chat.');
+            // Corrected validation to check for candidates at the top level
+            if (!result || !result.candidates || result.candidates.length === 0 || !result.candidates[0].content || !result.candidates[0].content.parts || result.candidates[0].content.parts.length === 0) {
+                console.error('[GEMINI] Invalid response or safety block for chat. Full response:', JSON.stringify(result, null, 2));
+                throw new HttpsError('internal', 'Gemini API returned no valid candidates or content parts for the chat response.');
             }
-
-            const responseText = result.response.text();
+            
+            // Corrected text extraction from the actual response structure
+            const responseText = result.candidates[0].content.parts[0].text;
             const cleanedResponseText = cleanPotentialJsonMarkdown(responseText);
 
             try {

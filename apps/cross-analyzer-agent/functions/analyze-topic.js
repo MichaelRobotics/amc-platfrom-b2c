@@ -117,11 +117,15 @@ Styl Interakcji: Bądź analityczny, wnikliwy i proaktywny.
             candidateCount: 1
         });
 
-        if (!result || !result.response) {
-            throw new Error('Gemini API returned an invalid or empty response structure for topic analysis.');
+        // Corrected validation to check for candidates at the top level
+        if (!result || !result.candidates || result.candidates.length === 0 || !result.candidates[0].content || !result.candidates[0].content.parts || result.candidates[0].content.parts.length === 0) {
+            // Log the actual response from Gemini for easier debugging in the future
+            console.error('[ANALYZE_TOPIC] Gemini returned an invalid response or was blocked. Full response:', JSON.stringify(result, null, 2));
+            throw new Error('Gemini API returned no valid candidates or content parts for the topic analysis.');
         }
-
-        const responseText = result.response.text();
+        
+        // Corrected text extraction from the actual response structure
+        const responseText = result.candidates[0].content.parts[0].text;
         const cleanedResponseText = cleanPotentialJsonMarkdown(responseText);
         
         let initialAnalysisResult;

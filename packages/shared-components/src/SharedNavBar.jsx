@@ -13,31 +13,31 @@ const menuConfig = {
     'digital-twins': {
         title: 'Digital Twins',
         items: [
-            { icon: <DigitalTwinXIcon />, title: 'Digital Twin X', desc: 'Podstawowa symulacja procesów.', href: '/products/digital-twin-x' },
-            { icon: <DigitalTwinAIIcon />, title: 'Digital Twin AI', desc: 'Zaawansowane modele z AI.', href: '/products/digital-twin-ai' },
-            { icon: <DigitalTwinSuperIcon />, title: 'Digital Twin Super', desc: 'Kompleksowe bliźniaki cyfrowe.', href: '/products/digital-twin-super' },
+            { icon: <DigitalTwinXIcon />, title: 'Digital Twin X', desc: 'Basic process simulation.', href: '/products/digital-twin-x' },
+            { icon: <DigitalTwinAIIcon />, title: 'Digital Twin AI', desc: 'Advanced models with AI.', href: '/products/digital-twin-ai' },
+            { icon: <DigitalTwinSuperIcon />, title: 'Digital Twin Super', desc: 'Comprehensive digital twins.', href: '/products/digital-twin-super' },
         ]
     },
     'agenty-ai': {
-        title: 'Agenty AI',
+        title: 'AI Agents',
         items: [
-            { icon: <LeanAIAgentIcon />, title: 'Lean AI Agent', desc: 'Agent do analizy danych i optymalizacji.', href: '/products/agent-lean-ai' },
-            { icon: <LeanAISuperAgentIcon />, title: 'Lean AI Super Agent', desc: 'Pełna automatyzacja z agentem AI.', href: '/products/lean-ai-super-agent' },
+            { icon: <LeanAIAgentIcon />, title: 'Lean AI Agent', desc: 'Agent for data analysis and optimization.', href: '/products/agent-lean-ai' },
+            { icon: <LeanAISuperAgentIcon />, title: 'Lean AI Super Agent', desc: 'Full automation with an AI agent.', href: '/products/lean-ai-super-agent' },
         ]
     },
     'szkolenia': {
-        title: 'Szkolenia',
+        title: 'Training',
         items: [
-            { icon: <BehavioralTrainingIcon />, title: 'Szkolenia behawioralne', desc: 'Rozwój kompetencji miękkich.', href: '/products/szkolenia-behawioralne' },
-            { icon: <SkillsTrainingIcon />, title: 'Szkolenia umiejętności', desc: 'Praktyczne warsztaty techniczne.', href: '/products/szkolenia-umiejetnosci' },
+            { icon: <BehavioralTrainingIcon />, title: 'Behavioral Training', desc: 'Soft skills development.', href: '/products/szkolenia-behawioralne' },
+            { icon: <SkillsTrainingIcon />, title: 'Skills Training', desc: 'Practical technical workshops.', href: '/products/szkolenia-umiejetnosci' },
         ]
     },
     'wiecej': {
-        title: 'Więcej',
+        title: 'More',
         items: [
-            { icon: <PartnersIcon />, title: 'Partnerzy', desc: 'Nasi zaufani współpracownicy.', href: '/partners' },
-            { icon: <AboutUsIcon />, title: 'O nas', desc: 'Poznaj naszą misję i zespół.', href: '/about' },
-            { icon: <ContactIcon />, title: 'Kontakt', desc: 'Skontaktuj się z nami.', href: '/contact' }
+            { icon: <PartnersIcon />, title: 'Partners', desc: 'Our trusted collaborators.', href: '/partners' },
+            { icon: <AboutUsIcon />, title: 'About', desc: 'Get to know our mission and team.', href: '/about' },
+            { icon: <ContactIcon />, title: 'Contact', desc: 'Contact us.', href: '/contact' }
         ]
     }
 };

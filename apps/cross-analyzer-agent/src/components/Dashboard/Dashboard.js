@@ -171,8 +171,13 @@ useEffect(() => {
             const chatDocs = snapshot.docs;
             const newChatMessages = chatDocs.map(doc => ({ sender: doc.data().role === 'user' ? 'user' : 'ai', text: doc.data().parts[0].text, id: doc.id }));
             const modelBlocks = chatDocs
-                .filter(doc => doc.data().role === 'model' && doc.data().detailedAnalysisBlock)
-                .map(doc => formatBlockDataFromBackend(doc.data().detailedAnalysisBlock, 'chat'));
+            .filter(doc => {
+                const data = doc.data();
+                return data.role === 'model' && 
+                       data.detailedAnalysisBlock && 
+                       Object.keys(data.detailedAnalysisBlock).length > 0;
+            })
+            .map(doc => formatBlockDataFromBackend(doc.data().detailedAnalysisBlock, 'chat'));
     
             // Combine the initial block with any blocks from the chat.
             const allBlocks = [...initialBlock, ...modelBlocks];

@@ -59,7 +59,7 @@ const Sidebar = ({
                 <hr className="my-4 border-gray-700" />
 
                 {/* Section for Topics List for the Active Analysis */}
-                <h2 className="text-lg font-semibold mb-2 px-2">Tematy w tej Analizie</h2>
+                <h2 className="text-lg font-semibold mb-2 px-2">Podaj Temat Analizy</h2>
                 <nav>
                     <ul>
                         {topics.length > 0 ? (

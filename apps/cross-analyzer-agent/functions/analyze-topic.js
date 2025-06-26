@@ -171,7 +171,7 @@ Styl Interakcji: Bądź analityczny, wnikliwy i proaktywny.
         const firstMessageData = {
             role: "model",
             parts: [{ text: initialAnalysisResult.conciseInitialSummary }],
-            detailedAnalysisBlock: initialAnalysisResult,
+            // detailedAnalysisBlock removed - no duplicate block
             timestamp: finalTimestamp,
         };
         await chatMessagesRef.add(firstMessageData);

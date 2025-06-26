@@ -9,11 +9,20 @@ import React, { useState, useRef, useEffect } from 'react';
 const Chat = ({ messages, onSendMessage, isSending }) => {
     const [currentMessage, setCurrentMessage] = useState('');
     const chatEndRef = useRef(null);
+    const textareaRef = useRef(null); // Ref for the textarea
 
     // Auto-scroll to the latest message
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    // Auto-resize textarea
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        }
+    }, [currentMessage]);
 
     const handleSend = () => {
         if (currentMessage.trim() && !isSending) {
@@ -50,22 +59,33 @@ const Chat = ({ messages, onSendMessage, isSending }) => {
                 )}
                 <div ref={chatEndRef} />
             </div>
-            <div className="chat-input flex items-center border-t border-gray-600 pt-4">
+            <div className="chat-input grid grid-cols-[1fr_auto] items-center gap-x-6 px-4 py-3">
                 <textarea
-                    className="flex-1 bg-gray-800 text-gray-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    ref={textareaRef} // Add the ref here
+                    className="bg-gray-800/70 text-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ease-in-out placeholder-gray-400 overflow-y-auto"
                     placeholder="Zadaj pytanie dotyczące analizy..."
                     value={currentMessage}
                     onChange={(e) => setCurrentMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    rows={2}
+                    rows={1}
                     disabled={isSending}
+                    style={{ minHeight: '48px', maxHeight: '200px' }}
                 />
                 <button
                     onClick={handleSend}
                     disabled={isSending || !currentMessage.trim()}
-                    className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+                    className="h-12 w-12 flex items-center justify-center bg-blue-600 text-white rounded-full disabled:bg-gray-500 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors shrink-0"
                 >
-                    {isSending ? 'Wysyłanie...' : 'Wyślij'}
+                    {isSending ? (
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    ) : (
+                        <svg className="w-6 h-6 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                    )}
                 </button>
             </div>
         </div>

@@ -31,64 +31,64 @@ var menuConfig = {
     items: [{
       icon: /*#__PURE__*/(0, _jsxRuntime.jsx)(_Icons.DigitalTwinXIcon, {}),
       title: 'Digital Twin X',
-      desc: 'Podstawowa symulacja procesów.',
+      desc: 'Basic process simulation.',
       href: '/products/digital-twin-x'
     }, {
       icon: /*#__PURE__*/(0, _jsxRuntime.jsx)(_Icons.DigitalTwinAIIcon, {}),
       title: 'Digital Twin AI',
-      desc: 'Zaawansowane modele z AI.',
+      desc: 'Advanced models with AI.',
       href: '/products/digital-twin-ai'
     }, {
       icon: /*#__PURE__*/(0, _jsxRuntime.jsx)(_Icons.DigitalTwinSuperIcon, {}),
       title: 'Digital Twin Super',
-      desc: 'Kompleksowe bliźniaki cyfrowe.',
+      desc: 'Comprehensive digital twins.',
       href: '/products/digital-twin-super'
     }]
   },
   'agenty-ai': {
-    title: 'Agenty AI',
+    title: 'AI Agents',
     items: [{
       icon: /*#__PURE__*/(0, _jsxRuntime.jsx)(_Icons.LeanAIAgentIcon, {}),
       title: 'Lean AI Agent',
-      desc: 'Agent do analizy danych i optymalizacji.',
+      desc: 'Agent for data analysis and optimization.',
       href: '/products/agent-lean-ai'
     }, {
       icon: /*#__PURE__*/(0, _jsxRuntime.jsx)(_Icons.LeanAISuperAgentIcon, {}),
       title: 'Lean AI Super Agent',
-      desc: 'Pełna automatyzacja z agentem AI.',
+      desc: 'Full automation with an AI agent.',
       href: '/products/lean-ai-super-agent'
     }]
   },
   'szkolenia': {
-    title: 'Szkolenia',
+    title: 'Training',
     items: [{
       icon: /*#__PURE__*/(0, _jsxRuntime.jsx)(_Icons.BehavioralTrainingIcon, {}),
-      title: 'Szkolenia behawioralne',
-      desc: 'Rozwój kompetencji miękkich.',
+      title: 'Behavioral Training',
+      desc: 'Soft skills development.',
       href: '/products/szkolenia-behawioralne'
     }, {
       icon: /*#__PURE__*/(0, _jsxRuntime.jsx)(_Icons.SkillsTrainingIcon, {}),
-      title: 'Szkolenia umiejętności',
-      desc: 'Praktyczne warsztaty techniczne.',
+      title: 'Skills Training',
+      desc: 'Practical technical workshops.',
       href: '/products/szkolenia-umiejetnosci'
     }]
   },
   'wiecej': {
-    title: 'Więcej',
+    title: 'More',
     items: [{
       icon: /*#__PURE__*/(0, _jsxRuntime.jsx)(_Icons.PartnersIcon, {}),
-      title: 'Partnerzy',
-      desc: 'Nasi zaufani współpracownicy.',
+      title: 'Partners',
+      desc: 'Our trusted collaborators.',
       href: '/partners'
     }, {
       icon: /*#__PURE__*/(0, _jsxRuntime.jsx)(_Icons.AboutUsIcon, {}),
-      title: 'O nas',
-      desc: 'Poznaj naszą misję i zespół.',
+      title: 'About',
+      desc: 'Get to know our mission and team.',
       href: '/about'
     }, {
       icon: /*#__PURE__*/(0, _jsxRuntime.jsx)(_Icons.ContactIcon, {}),
-      title: 'Kontakt',
-      desc: 'Skontaktuj się z nami.',
+      title: 'Contact',
+      desc: 'Contact us.',
       href: '/contact'
     }]
   }

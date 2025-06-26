@@ -140,7 +140,7 @@ async function processUploadedCsvHandler(event) {
         }
         console.log(`[PROCESS_CSV] CSV preprocessed: ${rowCount} rows, ${columnCount} columns.`);
 
-        const sampleSizeForPrompt = Math.min(rowCount, 500);
+        const sampleSizeForPrompt = Math.min(rowCount, 110);
         const sampleDataForSummaryPrompt = cleanedData.slice(0, sampleSizeForPrompt).map(row =>
             Object.fromEntries(Object.entries(row).map(([key, value]) => [key, String(value).slice(0, 100)]))
         );

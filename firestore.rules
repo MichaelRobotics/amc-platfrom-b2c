@@ -7,26 +7,25 @@ service cloud.firestore {
       return request.auth.token.admin == true;
     }
 
-    // --- Rules for cross-analyzer-gcp data ---
     match /analyses/{analysisId} {
-      // FIX: Check for 'userId' instead of 'ownerId' to match the application code.
       allow read, write: if (request.auth != null && request.auth.uid == resource.data.userId) || isAdmin();
-
-      // FIX: Ensure the created document contains the correct 'userId' field.
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
 
-    match /analyses/{analysisId}/topics/{topicId} {
-        // FIX: Check for 'userId' on the parent document.
+      // Rule for the topics sub-collection
+      match /topics/{topicId} {
         allow read, write: if (request.auth != null && get(/databases/$(database)/documents/analyses/$(analysisId)).data.userId == request.auth.uid) || isAdmin();
+
+        // ** THIS IS THE NEW RULE THAT FIXES THE ERROR **
+        // It allows users to read/write to the chatHistory of a topic they own.
+        match /chatHistory/{messageId} {
+          allow read, write: if (request.auth != null && get(/databases/$(database)/documents/analyses/$(analysisId)).data.userId == request.auth.uid) || isAdmin();
+        }
+      }
     }
     
-    // --- Rules for public lead-generation data ---
+    // Rules for public lead-generation data
     match /leads/{leadId} {
-        // Allow anyone to create a lead document. This is for the public forms.
         allow create: if true;
-        
-        // Only allow admins to read or modify leads after they are created.
         allow read, update, delete: if isAdmin();
     }
   }

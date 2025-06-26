@@ -40,8 +40,13 @@ const { getAnalysesListHandler } = require('./analyses');
 const { getAnalysisTopicDetailHandler } = require('./analysisTopicDetail');
 const { chatOnTopicHandler } = require('./chat-on-topic');
 const { analyzeTopicHandler } = require('./analyze-topic');
+const { geminiApiProxyHandler } = require('./gemini-api-proxy');
 
+// --- EXPORTS FOR DEPLOYMENT ---
 
+// The ONLY function that has access to the secret key vault.
+
+exports.geminiApiProxy = onRequest({ secrets: ["GEMINI_API_KEY_VAULT"] }, geminiApiProxyHandler);
 // --- EXPORTS FOR DEPLOYMENT ---
 // All functions exported below will automatically inherit the global settings.
 
@@ -51,7 +56,7 @@ exports.getAnalysesList = onCall(getAnalysesListHandler);
 exports.getAnalysisTopicDetail = onCall(getAnalysisTopicDetailHandler);
 
 // This callable function requires the Gemini API key
-exports.chatOnTopic = onCall({ secrets: ["GEMINI_API_KEY"] }, chatOnTopicHandler);
+exports.chatOnTopic = onCall({ secrets: ["GEMINI_API_KEY","GEMINI_API_KEY_VAULT"] }, chatOnTopicHandler);
 
 // Export the storage function. We override its memory and add the required secret.
 const BUCKET_NAME = 'amc-platform-b2c.firebasestorage.app'; // Verify this is your actual bucket name
@@ -59,7 +64,7 @@ exports.processUploadedCsv = onObjectFinalized({
     bucket: BUCKET_NAME,
     memory: '8GiB',
     timeoutSeconds: 540,                 // Override global setting
-    secrets: ["GEMINI_API_KEY"],    // Grant access to the Gemini secret
+    secrets: ["GEMINI_API_KEY","GEMINI_API_KEY_VAULT"],    // Grant access to the Gemini secret
 }, processUploadedCsvHandler);
 
 // Export the Firestore-triggered function for AI analysis.
@@ -69,4 +74,5 @@ exports.analyzeTopic = onDocumentWritten({
     secrets: ["GEMINI_API_KEY"], // Grant access to the Gemini secret
     timeoutSeconds: 540,         // Override: Give it 9 minutes for analysis
     memory: '8GiB',              // Override: Give it more memory
+    secrets: ["GEMINI_API_KEY_VAULT"],
 }, analyzeTopicHandler);

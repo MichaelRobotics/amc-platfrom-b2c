@@ -8,10 +8,9 @@ let genAIInstance;
 /**
  * Initializes the GoogleGenAI client if it hasn't been already.
  */
-function initializeGemini() {
+function initializeGemini(apiKey) {
     if (!genAIInstance) {
         console.log('[GeminiClient] Initializing Gemini AI client...');
-        const apiKey = process.env.GEMINI_API_KEY;
 
         if (!apiKey) {
             console.error('[GeminiClient] CRITICAL: GEMINI_API_KEY environment variable is not set.');
@@ -29,8 +28,8 @@ function initializeGemini() {
  * @param {string} modelName The name of the model to use.
  * @returns {object} An object with a `generateContent` method.
  */
-function getGenerativeModel(modelName) {
-    initializeGemini();
+function getGenerativeModel(modelName, apiKey) {
+    initializeGemini(apiKey);
 
     return {
         generateContent: async (prompt, generationConfig = {}) => {

@@ -7,7 +7,9 @@
  */
 
 // We don't need the v1 'functions' import anymore.
+const { getFunctions } = require('firebase-admin/functions');
 const { admin, firestore } = require("./_lib/firebaseAdmin");
+const { GoogleAuth } = require('google-auth-library');
 const { getGenerativeModel, cleanPotentialJsonMarkdown } = require("./_lib/geminiClient");
 
 /**
@@ -20,7 +22,6 @@ async function analyzeTopicHandler(event) {
     // --- CORRECTED v2 PARAMETER HANDLING ---
     // Get the wildcard parameters from the event object
     const { analysisId, topicId } = event.params;
-    
     // The snapshot of the document *after* the change
     const snapAfter = event.data.after;
     if (!snapAfter) {
@@ -46,12 +47,21 @@ async function analyzeTopicHandler(event) {
         // Switch to an 'analyzing' status to prevent re-triggering.
         await topicDocRef.update({ status: "analyzing" });
 
+        // --- AUTHENTICATION & PROXY SETUP ---
         const analysisDocRef = firestore().collection('analyses').doc(analysisId);
         const analysisDoc = await analysisDocRef.get();
-
-        if (!analysisDoc.exists) {
-            throw new Error(`Analysis with ID ${analysisId} not found.`);
+        if (!analysisDoc.exists || !analysisDoc.data().userId) {
+            throw new Error(`Parent analysis document or its userId not found for analysis ${analysisId}`);
         }
+        const userId = analysisDoc.data().userId;
+
+        const profileDoc = await firestore().collection('users').doc(userId).get();
+        if (!profileDoc.exists || !profileDoc.data().apiKeySecretName) {
+            throw new Error(`User profile or apiKeySecretName not found for user ${userId}.`);
+        }
+        const apiKeyName = profileDoc.data().apiKeySecretName;
+        // --- END AUTHENTICATION ---
+
         const analysisData = analysisDoc.data();
         console.log(`[ANALYZE_TOPIC] Analysis document for ${analysisId} found.`);
 
@@ -107,8 +117,16 @@ Styl Interakcji: Bądź analityczny, wnikliwy i proaktywny.
         `;
 
         console.log(`[ANALYZE_TOPIC] Calling Gemini for initial analysis of topic: ${topicDisplayName}`);
-        
-        const model = getGenerativeModel("gemini-2.5-flash-preview-05-20");
+        const keyVault = JSON.parse(process.env.GEMINI_API_KEY_VAULT);
+        const apiKey = keyVault[apiKeyName];
+
+        if (!apiKey) {
+            console.error(`Configuration error: Key "${apiKeyName}" not found in vault.`);
+            response.status(500).json({ error: `Internal configuration error.` });
+            return;
+        }
+        const model = getGenerativeModel("gemini-2.5-flash-preview-05-20", apiKey);
+
         const result = await model.generateContent(initialPrompt, {
             temperature: 0.7,
             topP: 0.95,

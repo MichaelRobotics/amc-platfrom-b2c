@@ -5,12 +5,16 @@
  * creation of the initial topic. It is fully v2 compatible.
  */
 
+
+const { getFunctions } = require('firebase-admin/functions');
 const { admin, firestore, storage } = require("./_lib/firebaseAdmin");
 const { getGenerativeModel, cleanPotentialJsonMarkdown } = require("./_lib/geminiClient");
 const { readFile, unlink } = require("fs/promises");
 const Papa = require("papaparse");
 const os = require('os');
 const path = require('path');
+const { GoogleAuth } = require('google-auth-library');
+
 
 // --- START: ORIGINAL HELPER FUNCTION (PRESERVED 100%) ---
 function preprocessCsvData(csvString) {
@@ -81,10 +85,39 @@ async function processUploadedCsvHandler(event) {
         return null;
     }
     // --- END OF CORRECTION ---
-
+    const userId = pathParts[1]; //
     const analysisId = pathParts[2];
     const analysisDocRef = firestore().collection('analyses').doc(analysisId);
 
+    const maxRetries = 5;
+    const delayMs = 2000; // 2 seconds
+    
+    let analysisDoc;
+    let retries = 0;
+    
+    // Poll Firestore until the document exists or we run out of retries
+    while (retries < maxRetries) {
+        analysisDoc = await analysisDocRef.get();
+        if (analysisDoc.exists) {
+            console.log(`[PROCESS_CSV] Document ${analysisId} found after ${retries} retries. Proceeding.`);
+            break; // Exit the loop and proceed
+        }
+    
+        console.log(`[PROCESS_CSV] Document ${analysisId} not found. Waiting ${delayMs}ms... (Attempt ${retries + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        retries++;
+    }
+    
+    // If the document still doesn't exist after all retries, exit gracefully.
+    if (!analysisDoc || !analysisDoc.exists) {
+        console.error(`[PROCESS_CSV] CRITICAL: Document ${analysisId} did not appear after ${maxRetries} retries. Abandoning processing.`);
+        // Optionally, you could delete the orphaned CSV file from storage here.
+        return null; 
+    }
+    
+    console.log(`[PROCESS_CSV] Triggered for analysisId: ${analysisId}, file: ${filePath}`);
+    
+    
     console.log(`[PROCESS_CSV] Triggered for analysisId: ${analysisId}, file: ${filePath}`);
 
     try {
@@ -111,6 +144,14 @@ async function processUploadedCsvHandler(event) {
         const sampleDataForSummaryPrompt = cleanedData.slice(0, sampleSizeForPrompt).map(row =>
             Object.fromEntries(Object.entries(row).map(([key, value]) => [key, String(value).slice(0, 100)]))
         );
+        
+        // --- AUTHENTICATION & PROXY SETUP ---
+        const profileDoc = await firestore().collection('users').doc(userId).get();
+        if (!profileDoc.exists || !profileDoc.data().apiKeySecretName) {
+            throw new Error(`User profile or apiKeySecretName not found for user ${userId}.`);
+        }
+        const apiKeyName = profileDoc.data().apiKeySecretName;
+
 
         // --- ORIGINAL, FULLY-FEATURED PROMPT 1 RESTORED ---
         const dataSummaryPrompt = `
@@ -152,11 +193,21 @@ Dla 'columns.description', krótko opisz zawartość i potencjalne znaczenie kol
 Dla 'rowInsights', wybierz 2-3 najbardziej wyróżniające się wiersze z dostarczonej próbki i opisz je. Wskaż numer wiersza z próbki (0-indeksowany) lub podaj kluczowe wartości, które go identyfikują.
 Dla 'generalObservations', podaj zwięzłe, ogólne spostrzeżenia.
 WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysłowy (") w wartościach tekstowych MUSZĄ być poprawnie poprzedzone znakiem ucieczki jako \\".
-        `;
 
+Twoja ostateczna odpowiedź MUSI zawierać TYLKO i wyłącznie kompletny, prawidłowo sformatowany obiekt JSON. Nie dołączaj żadnych dodatkowych tekstów, wyjaśnień, ani odniesień po zakończeniu obiektu JSON.
+
+`;
+ 
         console.log('[PROCESS_CSV] Calling Gemini for data summary...');
-        
-        const model = getGenerativeModel("gemini-2.5-flash-preview-05-20");
+        const keyVault = JSON.parse(process.env.GEMINI_API_KEY_VAULT);
+        const apiKey = keyVault[apiKeyName];
+
+        if (!apiKey) {
+            console.error(`Configuration error: Key "${apiKeyName}" not found in vault.`);
+            response.status(500).json({ error: `Internal configuration error.` });
+            return;
+        }
+        const model = getGenerativeModel("gemini-2.5-flash-preview-05-20", apiKey);
         // --- ORIGINAL GEMINI PARAMETERS RESTORED ---
         const resultSummary = await model.generateContent(dataSummaryPrompt, {
             temperature: 0.3,
@@ -175,6 +226,7 @@ WAŻNE: Cała odpowiedź musi być prawidłowym obiektem JSON. Wszelkie cudzysł
 
         // Corrected text extraction from the actual response structure
         const responseTextSummary = resultSummary.candidates[0].content.parts[0].text;
+ 
         const cleanedResponseTextSummary = cleanPotentialJsonMarkdown(responseTextSummary);
         
         let dataSummaryForPrompts;
@@ -197,6 +249,8 @@ Zasugeruj 1-2 ogólne typy analizy, do których byłby on najbardziej odpowiedni
 Opis powinien być zwięzły i informacyjny. Nie używaj formatowania HTML. Odpowiedź powinna być zwykłym tekstem.
         `;
 
+        console.log('[PROCESS_CSV] Calling Gemini for data nature description...');
+        // --- ORIGINAL GEMINI PARAMETERS RESTORED ---
         console.log('[PROCESS_CSV] Calling Gemini for data nature description...');
         // --- ORIGINAL GEMINI PARAMETERS RESTORED ---
         const resultNature = await model.generateContent(dataNaturePrompt, {

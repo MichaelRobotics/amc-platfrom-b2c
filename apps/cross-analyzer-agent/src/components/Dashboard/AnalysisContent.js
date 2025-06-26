@@ -25,11 +25,8 @@ const AnalysisContent = ({ blocks, currentIndex }) => {
             {activeBlock ? (
                 <AnalysisBlock
                     key={activeBlock.id}
-                    title={activeBlock.question}
-                    findingsHeading={activeBlock.findingsHeading}
-                    findingsContent={activeBlock.findingsContent}
-                    thoughtProcessContent={activeBlock.thoughtProcessContent}
-                    newSuggestionsContent={activeBlock.newSuggestionsContent}
+                    blockData={activeBlock}
+                    isActive={true} 
                 />
             ) : (
                  <div className="text-center p-8 text-gray-400">Wybierz blok analizy.</div>

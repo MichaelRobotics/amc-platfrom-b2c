@@ -109,7 +109,7 @@ const Dashboard = () => {
         return () => unsubscribe();
     }, [analysisId, user, navigate]);
 
-// --- REPLACE IT WITH THIS CORRECTED AND MORE ROBUST VERSION ---
+
 useEffect(() => {
     if (!analysisId) return;
     const topicsRef = collection(db, 'analyses', analysisId, 'topics');
@@ -118,6 +118,7 @@ useEffect(() => {
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const topicsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         setActiveTopics(topicsData);
+
 
         // Use a functional update to safely handle state changes inside the listener
         setSelectedTopic(currentSelectedTopic => {
@@ -148,47 +149,51 @@ useEffect(() => {
 
     // Effect 4: CORE LOGIC - Build Blocks & Chat from the selected topic's history.
     useEffect(() => {
+        // Exit early if we don't have what we need.
         if (!selectedTopic || !analysisId) {
             setAnalysisBlocks([]);
             setChatMessages([]);
             return;
         }
-
+    
+        // Immediately prepare the initial block from the selectedTopic state.
+        // This part no longer needs to wait for the chat listener to fire.
+        const initialBlock = selectedTopic.initialAnalysisResult
+            ? [formatBlockDataFromBackend(selectedTopic.initialAnalysisResult, 'initial', selectedTopic.topicDisplayName)]
+            : [];
+    
+        // Set up the listener for chat history.
         const chatHistoryRef = collection(db, 'analyses', analysisId, 'topics', selectedTopic.id, 'chatHistory');
         const q = query(chatHistoryRef, orderBy('timestamp', 'asc'));
-
+    
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const newBlocks = [];
-            let newChatMessages = [];
-
-            if (selectedTopic.initialAnalysisResult) {
-                newBlocks.push(formatBlockDataFromBackend(selectedTopic.initialAnalysisResult, 'initial', selectedTopic.topicDisplayName));
-            }
-
+            // Get chat messages and any analysis blocks from within the chat.
             const chatDocs = snapshot.docs;
-            newChatMessages = chatDocs.map(doc => ({ sender: doc.data().role === 'user' ? 'user' : 'ai', text: doc.data().parts[0].text, id: doc.id }));
-
-            const modelMessagesWithBlocks = chatDocs.filter(doc => doc.data().role === 'model' && doc.data().detailedAnalysisBlock);
-            modelMessagesWithBlocks.forEach(doc => {
-                newBlocks.push(formatBlockDataFromBackend(doc.data().detailedAnalysisBlock, 'chat'));
-            });
+            const newChatMessages = chatDocs.map(doc => ({ sender: doc.data().role === 'user' ? 'user' : 'ai', text: doc.data().parts[0].text, id: doc.id }));
+            const modelBlocks = chatDocs
+                .filter(doc => doc.data().role === 'model' && doc.data().detailedAnalysisBlock)
+                .map(doc => formatBlockDataFromBackend(doc.data().detailedAnalysisBlock, 'chat'));
+    
+            // Combine the initial block with any blocks from the chat.
+            const allBlocks = [...initialBlock, ...modelBlocks];
+            const prevBlockCount = analysisBlocks.length; // Read previous length before setting
             
-            const prevBlockCount = analysisBlocks.length;
-            setAnalysisBlocks(newBlocks);
+            setAnalysisBlocks(allBlocks);
             setChatMessages(newChatMessages);
-
-            if (prevBlockCount < newBlocks.length && newBlocks.length > 0) {
-                 setCurrentBlockIndex(newBlocks.length - 1);
-            } else if (newBlocks.length > 0 && currentBlockIndex >= newBlocks.length) {
-                setCurrentBlockIndex(newBlocks.length - 1);
+    
+            // Logic to navigate to the newest block when a chat response arrives.
+            if (prevBlockCount > 0 && prevBlockCount < allBlocks.length) {
+                 setCurrentBlockIndex(allBlocks.length - 1);
+            } else if (allBlocks.length > 0 && currentBlockIndex >= allBlocks.length) {
+                setCurrentBlockIndex(allBlocks.length - 1);
+            } else if (prevBlockCount === 0 && allBlocks.length > 0) {
+                setCurrentBlockIndex(0);
             }
-
-        }, (error) => {
-             showToast("Błąd ładowania historii czatu.", "error");
         });
-
+    
         return () => unsubscribe();
-    }, [selectedTopic, analysisId, showToast]);
+    }, [selectedTopic, analysisId]); // Removed showToast as it's not a true dependency here.
+    
 
 
     const handleTopicSubmit = useCallback(async (topicName) => {
@@ -207,7 +212,7 @@ useEffect(() => {
         if (!analysisId || !selectedTopic) return;
         setIsSendingMessage(true);
         try {
-            await apiClient.chatOnTopic({ analysisId, topicId: selectedTopic.id, messageText });
+            await apiClient.chatOnTopic({ analysisId, topicId: selectedTopic.id, userMessageText: messageText });
         } catch (error) {
             showToast(`Błąd odpowiedzi AI: ${error.message}`, "error");
         } finally {
@@ -217,18 +222,18 @@ useEffect(() => {
     
     // Main render logic function to prevent empty screen
     const renderContent = () => {
-        if (status === 'loading' || status === 'no_analyses') {
-            return <CustomMessage message={monitoringMessage} type="info"/>;
+        if (status.startsWith('error')) {
+            return <CustomMessage isActive={true} message={monitoringMessage} type="error" />;
         }
         if (status.startsWith('error')) {
-            return <CustomMessage message={monitoringMessage} type="error" />;
+            return <CustomMessage isActive={true} message={monitoringMessage} type="error" />;
         }
         if (status !== 'ready_for_topic_analysis' && status !== 'completed') {
-            return <CustomMessage message={monitoringMessage} />;
+            return <CustomMessage isActive={true} message={monitoringMessage} />;
         }
         
         if (!selectedTopic) {
-            return <CustomMessage message="Wybierz temat z listy lub utwórz nowy, aby rozpocząć analizę." type="info" />;
+            return <CustomMessage isActive={true} message="Wybierz temat z listy lub utwórz nowy, aby rozpocząć analizę." type="info" />;
         }
         
         return (
@@ -248,7 +253,7 @@ useEffect(() => {
                 {analysisBlocks.length > 0 ? (
                      <AnalysisContent blocks={analysisBlocks} currentIndex={currentBlockIndex} />
                 ) : (
-                    <CustomMessage message="Oczekiwanie na pierwszą analizę dla tego tematu..." type="info" />
+                    <CustomMessage isActive={true} message="Oczekiwanie na pierwszą analizę dla tego tematu..." type="info" />
                 )}
 
                 <Chat

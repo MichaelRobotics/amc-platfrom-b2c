@@ -3,6 +3,7 @@
  * and updated to the v2 function signature for full compatibility.
  */
 
+const { getFunctions } = require('firebase-admin/functions');
 const { HttpsError } = require("firebase-functions/v2/https");
 const { admin, firestore } = require("./_lib/firebaseAdmin");
 const { getGenerativeModel, cleanPotentialJsonMarkdown } = require("./_lib/geminiClient");
@@ -58,10 +59,7 @@ async function chatOnTopicHandler(request) {
 
         // Authorization check: Ensure user owns the analysis
         const analysisDoc = await analysisDocRef.get();
-        if (!analysisDoc.exists) {
-            throw new HttpsError('not-found', `Analysis with ID ${analysisId} not found.`);
-        }
-        if (analysisDoc.data().userId !== uid) {
+        if (!analysisDoc.exists || analysisDoc.data().userId !== uid) {
             throw new HttpsError('permission-denied', 'You do not have permission to access this analysis.');
         }
 
@@ -138,7 +136,23 @@ Styl Interakcji: Bądź analityczny, wnikliwy i bezpośrednio odpowiadaj na pyta
         console.log(`Calling Gemini for chat response on topic: ${topicDisplayName}`);
         let geminiResponsePayload;
         try {
-            const model = getGenerativeModel("gemini-2.5-flash-preview-05-20");
+
+            const profileDoc = await firestore().collection('users').doc(uid).get();
+            if (!profileDoc.exists || !profileDoc.data().apiKeySecretName) {
+                throw new HttpsError('failed-precondition', 'User profile not configured for API access.');
+            }
+            const apiKeyName = profileDoc.data().apiKeySecretName;
+
+            const keyVault = JSON.parse(process.env.GEMINI_API_KEY_VAULT);
+            const apiKey = keyVault[apiKeyName];
+    
+            if (!apiKey) {
+                console.error(`Configuration error: Key "${apiKeyName}" not found in vault.`);
+                response.status(500).json({ error: `Internal configuration error.` });
+                return;
+            }
+
+            const model = getGenerativeModel("gemini-2.5-flash-preview-05-20", apiKey);
             const result = await model.generateContent(chatPrompt, {
                 temperature: 0.7,
                 topP: 0.95,

@@ -147,7 +147,7 @@ const MainMenuCrossAnalyzer = () => {
             <div className="analyzer-card">
                 <div className="analyzer-card-header">
                     <img
-                        src="https://firebasestorage.googleapis.com/v0/b/csv-data-analyzer-e3207.firebasestorage.app/o/Twinn%20Agent%20AI.png?alt=media&token=08be442b-f6fb-4a00-9993-1fd3be2ddab7"
+                        src="https://firebasestorage.googleapis.com/v0/b/amc-platform-b2c.firebasestorage.app/o/Profit_Pulse_AI_logo.png?alt=media&token=eafc5270-318b-4413-8356-fc3b94ae76db"
                         alt="Twinn Agent AI - Twinn Witness Logo"
                         className={`header-logo-img ${isLogoVisible ? 'logo-visible' : 'logo-hidden'}`}
                         onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/300x75/334155/CBD5E1?text=Logo+Error'; e.target.alt = 'Błąd ładowania logo'; }}
